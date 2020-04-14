@@ -18,6 +18,10 @@ below:
   - Fetch dependencies: `poetry update`
   - Run a command in the virtual environment: `poetry run <your command>`
   - Launch a shell inside the virtual environment: `poetry shell`
+  - Run unit tests: `poetry run pytest .`
 
 ## Authors
 
+  - Sarah Walling <sarah.walling@umontana.edu>
+  - Travis Wheeler <travis.wheeler.umontana.edu>
+  - George Lesica <george.lesica@umontana.edu>
