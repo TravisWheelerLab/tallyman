@@ -1,4 +1,4 @@
-from bloomfilter import BloomFilter
+from .bloomfilter import BloomFilter
 import subprocess, shlex
 
 def file_len(fname):
