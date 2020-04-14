@@ -1,9 +1,8 @@
-from .bloomfilter import BloomFilter
-import subprocess, shlex
+import subprocess, shlex, argparse
 
 def file_len(fname):
     #run a subprocess for "grep -o '>' DCEs.fasta | wc -l" to get number of sequences in fasta file
-    command_line = "grep -o '>' fixtures/DCEs.fasta"
+    command_line = "grep -o '>' " + fname
     args = shlex.split(command_line)
     p = subprocess.Popen(args, stdout=subprocess.PIPE)
     wc = subprocess.Popen(['wc', '-l'], stdin=p.stdout, stdout=subprocess.PIPE,)
@@ -11,28 +10,33 @@ def file_len(fname):
     return int(end_of_pipe[0])
 
 if __name__ == "__main__":
-    filename = 'fixtures/DCEs.fasta'
-    RNAfile = 'fixtures/RNAseqs.fasta'
-    n = file_len(filename)
+    parser = argparse.ArgumentParser(description="Count number of exact matches of short sequences in RNAseq data")
+    parser.add_argument("--DNA", default="fixtures/DCEs.fasta")
+    parser.add_argument("--RNA", default="fixtures/RNAseqs.fasta")
+    args = parser.parse_args()
+
+    #filename = 'fixtures/DCEs.fasta'
+    #RNAfile = 'fixtures/RNAseqs.fasta'
+    n = file_len(args.DNA)
     p = 0.05  # false positive probability
-    #bloomf = BloomFilter(n, p)
     DCE = {}
     RNA = []
     curr_seq = ""
     hits = {}
+    length = 0
 
-
-    with open(filename, 'r') as f:
+    with open(args.DNA, 'r') as f:
         Lines = f.readlines()
         for line in Lines:
             line.rstrip("\n")
             if '>' not in line:
                 DCE[line.rstrip("\n").upper()] = curr_seq
+                length = len(line)
             else:
                 curr_seq = line.rstrip("\n")
     f.close()
 
-    with open(RNAfile, 'r') as fg:
+    with open(args.RNA, 'r') as fg:
         Lines = fg.readlines()
         for line in Lines:
             line.rstrip("\n")
@@ -40,7 +44,7 @@ if __name__ == "__main__":
                 RNA.append(line.rstrip("\n").upper())
     fg.close()
 
-    length = 32
+    print("Length is:", length)
     for seq in RNA:
         count = 0
         name = ''
