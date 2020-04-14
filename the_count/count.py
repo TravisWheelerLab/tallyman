@@ -43,10 +43,17 @@ if __name__ == "__main__":
     length = 32
     for seq in RNA:
         count = 0
+        name = ''
         #print(seq)
         for i in range(0, len(seq)-(length-1)):
             count = count + 1
             RNA32 = (seq[i:length+i])
             #print(RNA32)
             if RNA32 in DCE:
-                print("Hit for", DCE[RNA32], "in chunk", count)
+                name = DCE[RNA32]
+                if name in hits:
+                    hits[name] = hits[name]+1
+                else:
+                    hits[name] = 1
+    for item in hits:
+        print(hits[item], "hit(s) for", item)
