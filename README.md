@@ -4,23 +4,27 @@
 
 A tool for counting K-mer occurrences in a DNA or RNA sequence.
 
-## Command Line Interface
+## The Command Line Interface
 
 ## The Algorithms
 
-## Contributing
+## The Developer Tooling
 
 This project uses [Poetry](https://python-poetry.org), see its
 web site for installation instructions. Poetry handles creating
-a virtual environment and fetching dependencies. See the commands
-below:
+a virtual environment and fetching dependencies. Note that after
+installation you may need to add `"$HOME/.poetry/bin"` to your
+`PATH` environment variable.
+
+Some basic Poetry commands are listed below:
 
   - Fetch dependencies: `poetry update`
-  - Run a command in the virtual environment: `poetry run <your command>`
   - Launch a shell inside the virtual environment: `poetry shell`
-  - Run unit tests: `poetry run pytest .`
+  - Run a command in the virtual environment: `poetry run <your command>`
+      - Run unit tests: `poetry run pytest .`
+      - Format the code: `poetry run black .`
 
-## Authors
+## The Authors
 
   - Sarah Walling <sarah.walling@umontana.edu>
   - Travis Wheeler <travis.wheeler.umontana.edu>
