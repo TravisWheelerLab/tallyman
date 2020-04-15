@@ -1,7 +1,9 @@
 from random import randint
 
 
-def random_insert_position(n_seqs: int, seq_len: int, target_len: int) -> (int, int):
+def random_insert_position(
+    n_seqs: int, seq_len: int, target_len: int
+) -> (int, int):
     """
     Given a particular number of sequences of particular length, return
     a sequence index, and an index into that sequence, at which another
