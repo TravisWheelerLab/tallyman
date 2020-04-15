@@ -11,7 +11,9 @@ jobs:
         - ${{ github.workspace }}:/code
     steps:
       - uses: actions/checkout@v1
-      - run: poetry run pytest .
+      - run:
+        - poetry install --dev
+        - poetry run pytest .
 
   check-format:
     runs-on: ubuntu-18.04
@@ -21,4 +23,6 @@ jobs:
         - ${{ github.workspace }}:/code
     steps:
       - uses: actions/checkout@v1
-      - run: poetry run black --check .
+      - run:
+        - poetry install --dev
+        - poetry run black --check .
