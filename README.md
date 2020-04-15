@@ -1,5 +1,7 @@
 ![Our mascot](character.png)
 
+![The Count CI](https://github.com/TravisWheelerLab/the_count/workflows/The%20Count%20CI/badge.svg)
+
 # The Count
 
 A tool for counting K-mer occurrences in a DNA or RNA sequence.
