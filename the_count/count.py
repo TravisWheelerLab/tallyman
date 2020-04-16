@@ -15,8 +15,6 @@ if __name__ == "__main__":
     parser.add_argument("--RNA", default="fixtures/RNAseqs.fasta")
     args = parser.parse_args()
 
-    #filename = 'fixtures/DCEs.fasta'
-    #RNAfile = 'fixtures/RNAseqs.fasta'
     n = file_len(args.DNA)
     p = 0.05  # false positive probability
     DCE = {}
