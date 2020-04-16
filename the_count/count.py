@@ -16,7 +16,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     n = file_len(args.DNA)
-    p = 0.05  # false positive probability
     DCE = {}
     RNA = []
     curr_seq = ""
@@ -35,11 +34,15 @@ if __name__ == "__main__":
     f.close()
 
     with open(args.RNA, 'r') as fg:
+        seq = ""
         Lines = fg.readlines()
         for line in Lines:
             line.rstrip("\n")
             if '>' not in line:
-                RNA.append(line.rstrip("\n").upper())
+                seq = seq + line.rstrip("\n").upper()
+            else:
+                RNA.append(seq)
+        print(seq)
     fg.close()
 
     print("Length is:", length)
