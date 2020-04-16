@@ -1,4 +1,4 @@
-import subprocess, shlex, argparse
+import subprocess, shlex, argparse, sys
 
 def file_len(fname):
     #run a subprocess for "grep -o '>' DCEs.fasta | wc -l" to get number of sequences in fasta file
@@ -16,9 +16,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     n = file_len(args.DNA)
-    p = 0.05  # false positive probability
     DCE = {}
-    RNA = []
     curr_seq = ""
     hits = {}
     length = 0
@@ -33,29 +31,26 @@ if __name__ == "__main__":
             else:
                 curr_seq = line.rstrip("\n")
     f.close()
+    print("DCEs read into hash of size", sys.getsizeof(DCE), "bytes")
+    print("Kmer length is", length, "nt")
 
     with open(args.RNA, 'r') as fg:
+        seq = ""
         Lines = fg.readlines()
         for line in Lines:
             line.rstrip("\n")
             if '>' not in line:
-                RNA.append(line.rstrip("\n").upper())
+                seq = seq + line.rstrip("\n").upper()
+            else:
+                name = ''
+                for i in range(0, len(seq) - (length - 1)):
+                    if (seq[i:length + i]) in DCE:
+                        if DCE[(seq[i:length + i])] in hits:
+                            hits[DCE[(seq[i:length + i])]] = hits[DCE[(seq[i:length + i])]] + 1
+                        else:
+                            hits[DCE[(seq[i:length + i])]] = 1
     fg.close()
 
-    print("Length is:", length)
-    for seq in RNA:
-        count = 0
-        name = ''
-        #print(seq)
-        for i in range(0, len(seq)-(length-1)):
-            count = count + 1
-            RNA32 = (seq[i:length+i])
-            #print(RNA32)
-            if RNA32 in DCE:
-                name = DCE[RNA32]
-                if name in hits:
-                    hits[name] = hits[name]+1
-                else:
-                    hits[name] = 1
+
     for item in hits:
         print(hits[item], "hit(s) for", item)
