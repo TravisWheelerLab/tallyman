@@ -15,11 +15,12 @@ if __name__ == "__main__":
     parser.add_argument("--RNA", default="fixtures/RNAseqs.fasta")
     args = parser.parse_args()
 
-    n = file_len(args.DNA)
+    n = file_len(args.RNA)
     DCE = {}
     curr_seq = ""
     hits = {}
     length = 0
+    count = 0
 
     with open(args.DNA, 'r') as f:
         Lines = f.readlines()
@@ -42,13 +43,17 @@ if __name__ == "__main__":
             if '>' not in line:
                 seq = seq + line.rstrip("\n").upper()
             else:
-                name = ''
+                #count = count + 1
+                #if(count % 1000 == 0):
+                #    progress = count / n
+                #    print("Progress: {:.5%}".format(progress))
                 for i in range(0, len(seq) - (length - 1)):
                     if (seq[i:length + i]) in DCE:
                         if DCE[(seq[i:length + i])] in hits:
                             hits[DCE[(seq[i:length + i])]] = hits[DCE[(seq[i:length + i])]] + 1
                         else:
                             hits[DCE[(seq[i:length + i])]] = 1
+                seq = ""
     fg.close()
 
 
