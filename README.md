@@ -29,5 +29,5 @@ Some basic Poetry commands are listed below:
 ## The Authors
 
   - Sarah Walling <sarah.walling@umontana.edu>
-  - Travis Wheeler <travis.wheeler.umontana.edu>
+  - Travis Wheeler <travis.wheeler@umontana.edu>
   - George Lesica <george.lesica@umontana.edu>
