@@ -21,6 +21,7 @@ if __name__ == "__main__":
     hits = {}
     length = 0
     count = 0
+    complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
 
     with open(args.DNA, 'r') as f:
         Lines = f.readlines()
@@ -53,9 +54,20 @@ if __name__ == "__main__":
                             hits[DCE[(seq[i:length + i])]] = hits[DCE[(seq[i:length + i])]] + 1
                         else:
                             hits[DCE[(seq[i:length + i])]] = 1
+                    #now do revcomp search
+                    reverse_complement = "".join(complement.get(base, base) for base in reversed(seq[i:length + i]))
+                    if(reverse_complement) in DCE:
+                        if reverse_complement in hits:
+                            hits[DCE[reverse_complement]] = hits[DCE[reverse_complement]] + 1
+                        else:
+                            hits[DCE[reverse_complement]] = 1
                 seq = ""
     fg.close()
 
-
+    outF = open("out.txt", "w")
+    outF.write("DCE_ID\tHits\n")
     for item in hits:
-        print(hits[item], "hit(s) for", item)
+        outF.write(item)
+        outF.write("\t")
+        outF.write(str(hits[item]))
+        outF.write("\n")
