@@ -13,6 +13,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Count number of exact matches of short sequences in RNAseq data")
     parser.add_argument("--DNA", default="fixtures/DCEs.fasta")
     parser.add_argument("--RNA", default="fixtures/RNAseqs.fasta")
+    parser.add_argument("--out", default="out.txt")
     args = parser.parse_args()
 
     n = file_len(args.RNA)
@@ -44,10 +45,11 @@ if __name__ == "__main__":
             if '>' not in line:
                 seq = seq + line.rstrip("\n").upper()
             else:
-                #count = count + 1
-                #if(count % 1000 == 0):
-                #    progress = count / n
-                #    print("Progress: {:.5%}".format(progress))
+                check = 454097 #this is the number of seqs in the full RNA file / 100 to calculate the progress from
+                count = count + 1
+                if(count % check == 0):
+                    progress = count / n
+                    print("Progress: {:.5%}".format(progress))
                 for i in range(0, len(seq) - (length - 1)):
                     if (seq[i:length + i]) in DCE:
                         if DCE[(seq[i:length + i])] in hits:
@@ -64,7 +66,7 @@ if __name__ == "__main__":
                 seq = ""
     fg.close()
 
-    outF = open("out.txt", "w")
+    outF = open(args.out, "w")
     outF.write("DCE_ID\tHits\n")
     for item in hits:
         outF.write(item)
