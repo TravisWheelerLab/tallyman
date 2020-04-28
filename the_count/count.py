@@ -22,34 +22,40 @@ if __name__ == "__main__":
     hits = {}
     length = 0
     count = 0
+    loc = 0
     complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
 
-    with open(args.DNA, 'r') as f:
-        Lines = f.readlines()
-        for line in Lines:
-            line.rstrip("\n")
+    f = open(args.DNA, 'r')
+    while 1:
+        lines = f.readlines(100000)
+        if not lines:
+            break
+        for line in lines:
             if '>' not in line:
                 DCE[line.rstrip("\n").upper()] = curr_seq
                 length = len(line)
             else:
                 curr_seq = line.rstrip("\n")
+
     f.close()
     print("DCEs read into hash of size", sys.getsizeof(DCE), "bytes")
     print("Kmer length is", length, "nt")
 
-    with open(args.RNA, 'r') as fg:
-        seq = ""
-        Lines = fg.readlines()
-        for line in Lines:
-            line.rstrip("\n")
+    fg = open(args.RNA, 'r')
+    seq = ""
+    while 1:
+        lines = fg.readlines(100000)
+        if not lines:
+            break
+        for line in lines:
             if '>' not in line:
                 seq = seq + line.rstrip("\n").upper()
-            else:
-                check = 454097 #this is the number of seqs in the full RNA file / 100 to calculate the progress from
-                count = count + 1
-                if(count % check == 0):
-                    progress = count / n
-                    print("Progress: {:.5%}".format(progress))
+            else: #This is a sequence name line - can stop concatenating the previous sequence and search on it
+                #First, grab location information - will need to report this at some point
+                loc = line.split(' ')
+                loc = loc[0]
+
+                #Then search on the fully concatenated sequence chunk
                 for i in range(0, len(seq) - (length - 1)):
                     if (seq[i:length + i]) in DCE:
                         if DCE[(seq[i:length + i])] in hits:
@@ -57,13 +63,19 @@ if __name__ == "__main__":
                         else:
                             hits[DCE[(seq[i:length + i])]] = 1
                     #now do revcomp search
-                    reverse_complement = "".join(complement.get(base, base) for base in reversed(seq[i:length + i]))
+                    #reverse_complement = "".join(complement.get(base, base) for base in reversed(seq[i:length + i]))
+                    reverse_complement = seq[i:length + i].translate(str.maketrans('ACGT', 'TGCA'))[::-1]
                     if(reverse_complement) in DCE:
                         if reverse_complement in hits:
                             hits[DCE[reverse_complement]] = hits[DCE[reverse_complement]] + 1
                         else:
                             hits[DCE[reverse_complement]] = 1
                 seq = ""
+                check = int(n/100)
+                count = count + 1
+                if(count % check == 0):
+                    progress = count / n
+                    print("Progress: {:.1%}".format(progress))
     fg.close()
 
     outF = open(args.out, "w")
