@@ -23,7 +23,6 @@ if __name__ == "__main__":
     length = 0
     count = 0
     loc = 0
-    complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
 
     f = open(args.DNA, 'r')
     while 1:
@@ -49,8 +48,9 @@ if __name__ == "__main__":
             break
         for line in lines:
             if '>' not in line:
+                #TODO: Is there a better way to achieve this? This change (from original approach that assumed the sequence was only on 1 line) made it about 10x slower
                 seq = seq + line.rstrip("\n").upper()
-            else: #This is a sequence name line - can stop concatenating the previous sequence and search on it
+            else: #This is a sequence name line - can stop concatenating the previous sequence and search for its 32mers
                 #First, grab location information - will need to report this at some point
                 loc = line.split(' ')
                 loc = loc[0]
@@ -63,13 +63,12 @@ if __name__ == "__main__":
                         else:
                             hits[DCE[(seq[i:length + i])]] = 1
                     #now do revcomp search
-                    #reverse_complement = "".join(complement.get(base, base) for base in reversed(seq[i:length + i]))
                     reverse_complement = seq[i:length + i].translate(str.maketrans('ACGT', 'TGCA'))[::-1]
                     if(reverse_complement) in DCE:
                         if reverse_complement in hits:
-                            hits[DCE[reverse_complement]] = hits[DCE[reverse_complement]] + 1
+                            hits[reverse_complement] = hits[reverse_complement] + 1
                         else:
-                            hits[DCE[reverse_complement]] = 1
+                            hits[reverse_complement] = 1
                 seq = ""
                 check = int(n/100)
                 count = count + 1

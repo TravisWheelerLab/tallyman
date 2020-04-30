@@ -38,7 +38,7 @@ open(my $fh, '<:encoding(UTF-8)', $infile)
 while (my $line = <$fh>){
 	chomp $line; 
 	#if($line =~ m/^(\d+)-([AS])-(\S)\s+(\d+).+$/){ #old version
-	if($line =~ m/^(\d+-[AS]-\S)\s+(\d+).+$/){  #new version - just grabbing whole ID, not comparing arf vs srf
+	if($line =~ m/^(\d+-[AS]-\S)\s+(\d+).+AS:i:0.+$/){  #new version - just grabbing whole ID, not comparing arf vs srf
 		if($id eq "none"){
 			#first line - set everything up
 			$id = $1;
@@ -99,9 +99,9 @@ while (my $line = <$fh>){
 
 		}
 	}
-    else{
-    	say "Didn't match regex: $line";
-    }
+    #else{
+    #	say "Didn't match regex: $line";
+    #}
 }
 #print last one to file
 #my $percent = $arfCount/($arfCount+$srfCount);
