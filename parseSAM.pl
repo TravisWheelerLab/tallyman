@@ -106,6 +106,6 @@ while (my $line = <$fh>){
 #print last one to file
 #my $percent = $arfCount/($arfCount+$srfCount);
 #$ratio = sprintf("%d%%",$percent*100);
-print FH "<$id\t$count\n";
+print FH ">$id\t$count\n";
 #print FH "$id\t$arfCount\t$srfCount\t$ratio\n";
 close(FH);

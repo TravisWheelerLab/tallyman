@@ -26,7 +26,7 @@ if __name__ == "__main__":
 
     f = open(args.DNA, 'r')
     while 1:
-        lines = f.readlines(100000)
+        lines = f.readlines()
         if not lines:
             break
         for line in lines:
@@ -51,30 +51,30 @@ if __name__ == "__main__":
                 #TODO: Is there a better way to achieve this? This change (from original approach that assumed the sequence was only on 1 line) made it about 10x slower
                 seq = seq + line.rstrip("\n").upper()
             else: #This is a sequence name line - can stop concatenating the previous sequence and search for its 32mers
-                #First, grab location information - will need to report this at some point
-                loc = line.split(' ')
-                loc = loc[0]
-
-                #Then search on the fully concatenated sequence chunk
+                  #and search on the fully concatenated sequence chunk
                 for i in range(0, len(seq) - (length - 1)):
                     if (seq[i:length + i]) in DCE:
-                        if DCE[(seq[i:length + i])] in hits:
-                            hits[DCE[(seq[i:length + i])]] = hits[DCE[(seq[i:length + i])]] + 1
+                        if DCE[seq[i:length + i]] in hits:
+                            hits[DCE[seq[i:length + i]]] = hits[DCE[seq[i:length + i]]] + 1
                         else:
-                            hits[DCE[(seq[i:length + i])]] = 1
+                            hits[DCE[seq[i:length + i]]] = 1
+
                     #now do revcomp search
                     reverse_complement = seq[i:length + i].translate(str.maketrans('ACGT', 'TGCA'))[::-1]
-                    if(reverse_complement) in DCE:
-                        if reverse_complement in hits:
-                            hits[reverse_complement] = hits[reverse_complement] + 1
+                    if (reverse_complement) in DCE:
+                        if DCE[reverse_complement] in hits:
+                            hits[DCE[reverse_complement]] = hits[DCE[reverse_complement]] + 1
                         else:
-                            hits[reverse_complement] = 1
+                            hits[DCE[reverse_complement]] = 1
+
+                loc = line.split(' ') #will need location information at some point
+                loc = loc[0]
                 seq = ""
                 check = int(n/100)
                 count = count + 1
                 if(count % check == 0):
                     progress = count / n
-                    print("Progress: {:.1%}".format(progress))
+                    #print("Progress: {:.1%}".format(progress))
     fg.close()
 
     outF = open(args.out, "w")
