@@ -42,6 +42,7 @@ while (my $line = <$fh>){
 		if($id eq "none"){
 			#first line - set everything up
 			$id = $1;
+			$count++;
 			#$id = $1;
 			#$type = $2;
 			#$side = $3;
@@ -77,7 +78,7 @@ while (my $line = <$fh>){
 			#my $percent = $arfCount/($arfCount+$srfCount);
 			#$ratio = sprintf("%d%%",$percent*100);
 			#print FH "$id\t$arfCount\t$srfCount\t$ratio\n";
-			print FH "<$id\t$count\n";
+			print FH ">$id\t$count\n";
 			#reset counts/carried over variables and start again
 			$count = 0;
 			#$arfCount = 0;
