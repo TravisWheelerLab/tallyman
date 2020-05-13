@@ -12,12 +12,17 @@ def file_len(fname):
 def make_results_hash(DCE, hits):
     hitcmp = {}
     for item in DCE:
-        if DCE[item] in hits:
-            hitcmp[DCE[item]] = hits[DCE[item]]
-            #print(DCE[item], "\t", hits[DCE[item]])
+        if isinstance(DCE[item], list): #check to see if there are multiple DCE names for this sequence
+            for seq in DCE[item]: #and if so go through them one by one
+                if seq in hits:
+                    hitcmp[seq] = hits[seq]
+                else:
+                    hitcmp[seq] = 0
         else:
-            hitcmp[DCE[item]] = 0
-            #print(DCE[item], "\t", 0)
+            if DCE[item] in hits:
+                hitcmp[DCE[item]] = hits[DCE[item]]
+            else:
+                hitcmp[DCE[item]] = 0
     return hitcmp
 
 def write_results(hits, filename):
@@ -40,11 +45,24 @@ def read_DNA(filename):
         if not lines:
             break
         for line in lines:
+            line = line.rstrip("\n").upper()
             if '>' not in line:
-                DCE[line.rstrip("\n").upper()] = curr_seq
-                length = len(line.rstrip("\n"))
+                if line in DCE:
+                    names = []
+                    if isinstance(DCE[line], list): #check to see if there are already multiple sequence names
+                        for seq in DCE[line]: #and iterate through each to append to the new list
+                            names.append(seq)
+                        names.append(curr_seq)
+                        DCE[line] = names
+                    else:   #there is only one existing sequence name - start a list with that and the new name
+                        names.append(DCE[line])
+                        names.append(curr_seq)
+                        DCE[line] = names
+                else:   #it doesn't already exist - put it in as-is
+                    DCE[line] = curr_seq
+                length = len(line)
             else:
-                curr_seq = line.rstrip("\n")
+                curr_seq = line
     f.close()
     return DCE, length
 
@@ -67,18 +85,32 @@ def read_RNA(filename, length, DCE):
                 # and search on the fully concatenated sequence chunk
                 for i in range(0, len(seq) - (length - 1)):
                     if (seq[i:length + i]) in DCE:
-                        if DCE[seq[i:length + i]] in hits:
-                            hits[DCE[seq[i:length + i]]] = hits[DCE[seq[i:length + i]]] + 1
+                        if isinstance(DCE[seq[i:length + i]], list): #check for multiple sequence names
+                            for item in DCE[seq[i:length + i]]:
+                                if item in hits: #and put each sequence name in hits SEPARATELY, with the shared hit count
+                                    hits[item] = hits[item] + 1
+                                else:
+                                    hits[item] = 1
                         else:
-                            hits[DCE[seq[i:length + i]]] = 1
+                            if DCE[seq[i:length + i]] in hits:
+                                hits[DCE[seq[i:length + i]]] = hits[DCE[seq[i:length + i]]] + 1
+                            else:
+                                hits[DCE[seq[i:length + i]]] = 1
 
                     # now do revcomp search
                     reverse_complement = seq[i:length + i].translate(str.maketrans('ACGT', 'TGCA'))[::-1]
                     if (reverse_complement) in DCE:
-                        if DCE[reverse_complement] in hits:
-                            hits[DCE[reverse_complement]] = hits[DCE[reverse_complement]] + 1
+                        if isinstance(DCE[reverse_complement], list): #check for multiple seq names
+                            for item in DCE[reverse_complement]:
+                                if item in hits: #and put each in hits as their own entry, with the shared hit count
+                                    hits[item] = hits[item] + 1
+                                else:
+                                    hits[item] = 1
                         else:
-                            hits[DCE[reverse_complement]] = 1
+                            if DCE[reverse_complement] in hits:
+                                hits[DCE[reverse_complement]] = hits[DCE[reverse_complement]] + 1
+                            else:
+                                hits[DCE[reverse_complement]] = 1
 
                 loc = line.split(' ')  # will need location information at some point
                 loc = loc[0]
