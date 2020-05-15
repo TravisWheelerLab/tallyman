@@ -4,7 +4,18 @@
 
 # The Count
 
-A tool for counting K-mer occurrences in a DNA or RNA sequence.
+A tool for counting exact K-mer occurrences in a DNA or RNA sequence.
+
+## Rust Implementation
+
+The Rust version of The Count supports Rust 1.43 and later. Tooling instructions
+are below. They assume you already have the Rust toolchain installed. To do
+this, see <https://rustup.rs>.
+
+  - Run unit tests: `cargo test`
+  - Run the demo: `cargo run`
+  - Create a release build (faster): `cargo build --release`,
+    the binary will end up in `target/release/`
 
 ## The Command Line Interface
 
