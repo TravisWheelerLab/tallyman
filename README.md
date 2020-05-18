@@ -16,6 +16,7 @@ this, see <https://rustup.rs>.
   - Run the demo: `cargo run`
   - Create a release build (faster): `cargo build --release`,
     the binary will end up in `target/release/`
+  - Format the code (do this before pushing): `cargo fmt`
 
 ## The Command Line Interface
 
