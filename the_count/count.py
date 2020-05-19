@@ -45,24 +45,23 @@ def read_DNA(filename):
         if not lines:
             break
         for line in lines:
-            line = line.rstrip("\n").upper()
             if '>' not in line:
                 if line in DCE:
                     names = []
-                    if isinstance(DCE[line], list): #check to see if there are already multiple sequence names
-                        for seq in DCE[line]: #and iterate through each to append to the new list
+                    if isinstance(DCE[line.rstrip("\n").upper()], list): #check to see if there are already multiple sequence names
+                        for seq in DCE[line.rstrip("\n").upper()]: #and iterate through each to append to the new list
                             names.append(seq)
                         names.append(curr_seq)
                         DCE[line] = names
                     else:   #there is only one existing sequence name - start a list with that and the new name
-                        names.append(DCE[line])
+                        names.append(DCE[line.rstrip("\n").upper()])
                         names.append(curr_seq)
-                        DCE[line] = names
+                        DCE[line.rstrip("\n").upper()] = names
                 else:   #it doesn't already exist - put it in as-is
-                    DCE[line] = curr_seq
+                    DCE[line.rstrip("\n").upper()] = curr_seq
                 length = len(line)
             else:
-                curr_seq = line
+                curr_seq = line.rstrip("\n")
     f.close()
     return DCE, length
 
@@ -120,6 +119,7 @@ def read_RNA(filename, length, DCE):
                 if (count % check == 0):
                     progress = count / n
                     # print("Progress: {:.1%}".format(progress))
+    print("Count hits:", hits)
     fg.close()
     return hits
 

@@ -59,9 +59,9 @@ def gen_RNA(number, lengths, inserts, reverse_ind, indices, outF):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate a test file of RNA")
-    parser.add_argument("--N", default=10)
-    parser.add_argument("--K", default=8)
-    parser.add_argument("--RNA", default=100000)
+    parser.add_argument("--N", type=int, default=10)
+    parser.add_argument("--K", type=int , default=8)
+    parser.add_argument("--RNA", type=int, default=100000)
     parser.add_argument("--DNAfile", default="testDNA.fasta")
     parser.add_argument("--RNAfile", default="testRNA.fasta")
     parser.add_argument("--out", default="testhits.txt")
@@ -99,34 +99,3 @@ if __name__ == "__main__":
 
     outR.close()
     outD.close()
-
-    #give us counts from grep for each sequence
-    outF.write("DCE_ID\tHits\n")
-    for item in DCE:
-        n = check_grep(args.RNAfile, item)
-        if n == 0:
-            n = check_grep(args.RNAfile, item.translate(str.maketrans('ACGT', 'TGCA'))[::-1])
-
-        testhits[DCE[item]] = n
-
-        #print(DCE[item], "\t", n)
-        outF.write(DCE[item])
-        outF.write("\t")
-        outF.write(str(n))
-        outF.write("\n")
-    outF.close()
-
-
-    #now test the count functions!
-    #print("Now testing count")
-    count_DCE, length = the_count.count.read_DNA(args.DNAfile)
-    #print("DCEs read into hash of size", sys.getsizeof(count_DCE), "bytes")
-    #print("Kmer length is", length, "nt")
-
-    hits = the_count.count.read_RNA(args.RNAfile, length, count_DCE)
-
-    counthits = the_count.count.make_results_hash(DCE, hits)
-    the_count.count.write_results(hits, args.out)
-
-    if testhits==counthits:
-        print("Pass!")
