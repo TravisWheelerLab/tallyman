@@ -8,4 +8,5 @@ __pycache__
 #Added by cargo
 
 /target
+.idea/
 /venv/
