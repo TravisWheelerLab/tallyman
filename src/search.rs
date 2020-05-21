@@ -9,6 +9,7 @@ pub struct SearchResult {
     pub haystack: String,
     pub needle: String,
     pub offset: usize,
+    pub hits: u64,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -83,13 +84,15 @@ impl Iterator for Search {
             // Compare the current haystack sequence against each of
             // the needle sequences and return the first match we fine.
             while self.needle_index < self.needle_count {
-                let needle = &self.needles[self.needle_index];
+                let mut needle= &mut self.needles[self.needle_index];
                 if needle.sequence == self.haystack_window {
+                    needle.hits = needle.hits+1;
                     self.needle_index += 1;
                     return Some(SearchResult {
                         haystack: self.haystack.identifier.clone(),
                         needle: needle.identifier.clone(),
                         offset: self.haystack_index - 32,
+                        hits: needle.hits,
                     });
                 }
                 self.needle_index += 1;

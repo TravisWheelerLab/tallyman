@@ -14,8 +14,8 @@ fn main() {
     for haystack in haystacks {
         for result in Search::new(&haystack, &needles, &alphabet) {
             println!(
-                "{} found in {} at offset {}",
-                result.needle, result.haystack, result.offset
+                "{} found in {} at offset {}. Total hits: {}",
+                result.needle, result.haystack, result.offset, result.hits
             );
         }
     }
