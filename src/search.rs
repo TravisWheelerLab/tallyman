@@ -86,6 +86,7 @@ impl Iterator for Search {
             while self.needle_index < self.needle_count {
                 let mut needle= &mut self.needles[self.needle_index];
                 if needle.sequence == self.haystack_window {
+                    println!("Hit!");
                     needle.hits = needle.hits+1;
                     self.needle_index += 1;
                     return Some(SearchResult {
