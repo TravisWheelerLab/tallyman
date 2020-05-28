@@ -1,4 +1,4 @@
-use crate::fasta::Seq;
+use crate::seqloader::Seq;
 use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -6,7 +6,6 @@ pub struct CompressedSeq {
     pub identifier: String,
     pub length: usize,
     pub sequence: u64,
-    pub hits: u64,
 }
 
 impl CompressedSeq {
@@ -30,7 +29,6 @@ impl CompressedSeq {
                 identifier: seq.identifier.clone(),
                 length: seq.length,
                 sequence,
-                hits: 0,
             })
         }
     }

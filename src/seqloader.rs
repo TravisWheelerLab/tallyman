@@ -96,7 +96,7 @@ impl<T: BufRead> Iterator for SeqLoader<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::fasta::{Seq, SeqLoader};
+    use crate::seqloader::{Seq, SeqLoader};
 
     #[test]
     fn test_haystack() {
