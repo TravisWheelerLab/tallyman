@@ -1,5 +1,8 @@
 use crate::seqloader::SeqLoader;
 use crate::search::Search;
+use crate::compress::CompressedSeq;
+use crate::alphabet::make_alphabet;
+
 extern crate multimap;
 use multimap::MultiMap;
 use std::collections::HashMap;
@@ -34,57 +37,46 @@ fn main() {
         _outfile = "output.txt";
     }
 
+    //open output file
     let output = File::create(Path::new(_outfile)).unwrap();
     let mut _writer = BufWriter::new(&output);
 
-    let mut needles = MultiMap::with_capacity(5000);
+    //read DCEs in to hash structures
+    let alphabet = "ATCG";
+    let mut needles: MultiMap<u64, String> = MultiMap::with_capacity(5000);
     let mut hits = HashMap::new();
+    let alphabet_map = make_alphabet(alphabet);
 
     let reader = fasta::Reader::from_file(Path::new(&_dna_file)).unwrap();
     for result in reader.records() {
         let record = result.unwrap();
-        //println!("{}", std::str::from_utf8(record.seq()).unwrap().to_string());
-        needles.insert(std::str::from_utf8(record.seq()).unwrap().to_string().to_uppercase(), record.id().to_string());
+        let seq = std::str::from_utf8(record.seq()).unwrap().to_string().to_uppercase();
+        //use compressed seq method to immediately store DCEs as their compressed versions
+        let compressed_seq = CompressedSeq::from_seq(&seq, &alphabet_map).unwrap();
+
+        needles.insert(compressed_seq.sequence, record.id().to_string());
         hits.insert(record.id().to_string(), 0);
     }
-
-    for (key, values) in needles.iter_all() {
-        //println!("key: {:?}, values: {:?}", key, values);
-        writeln!(
-            &mut _writer,
-            "Sequence: {:?}, IDs: {:?}",
-            key, values
-        )
-            .ok();
-    }
-
-    //let needles: Vec<_> = SeqLoader::from_path(Path::new(&_dna_file)).collect();
     println!("Loaded DCE sequences");
+
+    //use existing Seq structure for loading RNAseqs
     let haystacks = SeqLoader::from_path(Path::new(&_rna_file));
     println!("Loaded RNA sequences");
-/*    let alphabet = "ATCG";
-    let mut count = 0;
-    let n = 5478274;
-    let check = 54782;
+
     for haystack in haystacks {
-        count = count + 1;
-        if count % check == 0 {
-            let progress = count / n;
-            println!("Progress: {}", progress);
-        }
-        for result in Search::new(&haystack, &needles, &alphabet) {
+        println!("Next RNAseq input");
+        for result in Search::new(&haystack, &needles, &alphabet_map) {
             writeln!(
-                &mut writer,
-                "{} found in {} at offset {}",
+                &mut _writer,
+                "{:?} found in {} at offset {}",
                 result.needle, result.haystack, result.offset
             )
             .ok();
 
             println!(
-                "{} found in {} at offset {}",
+                "{:?} found in {} at offset {}",
                 result.needle, result.haystack, result.offset
             );
         }
     }
-    println!("{}\n", count);*/
 }

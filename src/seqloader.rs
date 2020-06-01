@@ -7,7 +7,6 @@ pub struct Seq {
     pub identifier: String,
     pub length: usize,
     pub sequence: Vec<char>,
-    pub hits: u64,
 }
 
 impl Seq {
@@ -16,7 +15,6 @@ impl Seq {
             identifier: String::from(identifier),
             length: sequence.len(),
             sequence: sequence.to_uppercase().chars().collect(),
-            hits: 0,
         }
     }
 }
