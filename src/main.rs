@@ -1,4 +1,4 @@
-use crate::seqloader::SeqLoader;
+use crate::seqloader::{SeqLoader, Seq};
 use crate::search::Search;
 use crate::compress::CompressedSeq;
 use crate::alphabet::make_alphabet;
@@ -15,6 +15,7 @@ use bio::io::fasta;
 
 pub mod alphabet;
 pub mod compress;
+pub mod fasta_read;
 pub mod seqloader;
 pub mod search;
 
@@ -60,12 +61,13 @@ fn main() {
     println!("Loaded DCE sequences");
 
     //use existing Seq structure for loading RNAseqs
-    let haystacks = SeqLoader::from_path(Path::new(&_rna_file));
+    let mut loader = fasta_read::SeqLoader::from_path(Path::new(&_rna_file));
     println!("Loaded RNA sequences");
 
     writeln!(&mut _writer, "DCE     Hits").ok();
 
-    for haystack in haystacks {
+    let mut haystack = seqloader::Seq::new("", "");
+    while loader.next_seq(&mut haystack) {
         //println!("Next RNAseq input");
         for result in Search::new(&haystack, &needles, &alphabet_map) {
             for name in &result.needle{
