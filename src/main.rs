@@ -63,20 +63,30 @@ fn main() {
     let haystacks = SeqLoader::from_path(Path::new(&_rna_file));
     println!("Loaded RNA sequences");
 
+    writeln!(&mut _writer, "DCE     Hits").ok();
+
     for haystack in haystacks {
-        println!("Next RNAseq input");
+        //println!("Next RNAseq input");
         for result in Search::new(&haystack, &needles, &alphabet_map) {
-            writeln!(
-                &mut _writer,
-                "{:?} found in {} at offset {}",
-                result.needle, result.haystack, result.offset
-            )
-            .ok();
+            for name in &result.needle{
+                let num_hits = hits.get(name).unwrap();
+                let num_hits = *num_hits as i64;
+                let num_hits = num_hits+1;
+                hits.insert(name.parse().unwrap(), num_hits);
+            }
 
             println!(
                 "{:?} found in {} at offset {}",
                 result.needle, result.haystack, result.offset
             );
         }
+    }
+    for (name, num) in hits.iter() {
+        writeln!(
+            &mut _writer,
+            "{}     {}",
+            name, num
+        )
+            .ok();
     }
 }
