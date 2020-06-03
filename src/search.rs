@@ -74,14 +74,14 @@ impl Iterator for Search {
 
             // Compare the current haystack sequence against each of
             // the needle sequences and return the first match we fine.
-            if self.needles.contains_key(&self.haystack_window) {
+/*            if self.needles.contains_key(&self.haystack_window) {
                 //println!("Hit!");
                 return Some(SearchResult {
                     haystack: self.haystack.identifier.clone(),
                     needle: (*self.needles.get_vec(&self.haystack_window).unwrap()).to_owned(),
                     offset: self.haystack_index - 32,
                 });
-            }
+            }*/
 
             // Bump the start index in order to slide the window one
             // nucleotide to the right.

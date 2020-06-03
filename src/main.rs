@@ -2,7 +2,7 @@ use crate::seqloader::{SeqLoader, Seq};
 use crate::search::Search;
 use crate::compress::CompressedSeq;
 use crate::alphabet::make_alphabet;
-
+use std::time::{Duration, Instant};
 extern crate multimap;
 use multimap::MultiMap;
 use std::collections::HashMap;
@@ -48,6 +48,7 @@ fn main() {
     let mut hits = HashMap::new();
     let alphabet_map = make_alphabet(alphabet);
 
+    let dce_start = Instant::now();
     let reader = fasta::Reader::from_file(Path::new(&_dna_file)).unwrap();
     for result in reader.records() {
         let record = result.unwrap();
@@ -58,13 +59,18 @@ fn main() {
         needles.insert(compressed_seq.sequence, record.id().to_string());
         hits.insert(record.id().to_string(), 0);
     }
-    println!("Loaded DCE sequences");
 
+    let duration = dce_start.elapsed();
+    println!("Time elapsed for hashing DCEs is: {:?}", duration);
+    //println!("Loaded DCE sequences");
+
+    let rna_start = Instant::now();
     //use existing Seq structure for loading RNAseqs
     let mut loader = fasta_read::SeqLoader::from_path(Path::new(&_rna_file));
-    println!("Loaded RNA sequences");
 
-    writeln!(&mut _writer, "DCE     Hits").ok();
+    //println!("Loaded RNA sequences");
+
+    //writeln!(&mut _writer, "DCE     Hits").ok();
 
     let mut haystack = seqloader::Seq::new("", "");
     while loader.next_seq(&mut haystack) {
@@ -77,18 +83,21 @@ fn main() {
                 hits.insert(name.parse().unwrap(), num_hits);
             }
 
-            println!(
+            /*println!(
                 "{:?} found in {} at offset {}",
                 result.needle, result.haystack, result.offset
-            );
+            );*/
         }
     }
-    for (name, num) in hits.iter() {
+    let duration = rna_start.elapsed();
+    println!("Time elapsed for search is: {:?}", duration);
+
+    /*for (name, num) in hits.iter() {
         writeln!(
             &mut _writer,
             "{}     {}",
             name, num
         )
             .ok();
-    }
+    }*/
 }
