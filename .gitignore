@@ -3,6 +3,7 @@ __pycache__
 .DS_Store
 .~
 *.pyc
+data/
 
 
 #Added by cargo

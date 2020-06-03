@@ -9,3 +9,6 @@ edition = "2018"
 [dependencies]
 multimap = "0.8.1"
 bio = "0.30.1"
+
+[profile.release]
+debug = true

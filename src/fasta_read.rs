@@ -155,8 +155,8 @@ impl<T: BufRead> SeqLoader<T> {
 mod test {
     use std::io::Cursor;
 
-    use crate::fasta::Seq;
     use crate::fasta_read::SeqLoader;
+    use crate::seqloader::Seq;
 
     #[test]
     fn test_next_line() {
@@ -189,7 +189,7 @@ mod test {
         let seq = &mut Seq::new("", "");
 
         assert_eq!(seq.identifier, "");
-        assert_eq!(seq.sequence, vec!());
+        assert_eq!(seq.sequence, Vec::<char>::new());
 
         assert_eq!(loader.next_seq(seq), true);
         assert_eq!(seq.identifier, "foo");
