@@ -7,7 +7,6 @@ pub struct Seq {
     pub identifier: String,
     pub length: usize,
     pub sequence: Vec<char>,
-    pub hits: u64,
 }
 
 impl Seq {
@@ -16,7 +15,6 @@ impl Seq {
             identifier: String::from(identifier),
             length: sequence.len(),
             sequence: sequence.to_uppercase().chars().collect(),
-            hits: 0,
         }
     }
 }
@@ -96,7 +94,7 @@ impl<T: BufRead> Iterator for SeqLoader<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::fasta::{Seq, SeqLoader};
+    use crate::seqloader::{Seq, SeqLoader};
 
     #[test]
     fn test_haystack() {

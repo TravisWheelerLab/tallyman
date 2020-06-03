@@ -1,12 +1,9 @@
-use crate::fasta::Seq;
+//use crate::seqloader::Seq;
 use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CompressedSeq {
-    pub identifier: String,
-    pub length: usize,
     pub sequence: u64,
-    pub hits: u64,
 }
 
 impl CompressedSeq {
@@ -14,23 +11,20 @@ impl CompressedSeq {
     /// provided that the instance is exactly 32 base pairs long.
     ///
     /// TODO: Handle shorter sequences?
-    pub fn from_seq(seq: &Seq, alphabet: &HashMap<char, u64>) -> Option<CompressedSeq> {
-        if seq.length != 32 {
+    pub fn from_seq(seq: &String, alphabet: &HashMap<char, u64>) -> Option<CompressedSeq> {
+        if seq.len() != 32 {
             None
         } else {
             let mut sequence = 0u64;
-            for nuc in seq.sequence.iter() {
-                let mask = match alphabet.get(nuc) {
+            for nuc in seq.chars() {
+                let mask = match alphabet.get(&nuc) {
                     Some(mask) => *mask,
                     None => return None,
                 };
                 sequence = (sequence << 2) | mask;
             }
             Some(CompressedSeq {
-                identifier: seq.identifier.clone(),
-                length: seq.length,
                 sequence,
-                hits: 0,
             })
         }
     }
@@ -40,7 +34,7 @@ impl CompressedSeq {
 mod tests {
     use crate::alphabet::make_alphabet;
     use crate::compress::CompressedSeq;
-    use crate::fasta::Seq;
+    use crate::seqloader::Seq;
 
     #[test]
     fn new_compressed_seq() {
