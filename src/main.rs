@@ -16,6 +16,7 @@ use bio::io::fasta;
 pub mod alphabet;
 pub mod compress;
 pub mod fasta_read;
+pub mod hash;
 pub mod seqloader;
 pub mod search;
 
