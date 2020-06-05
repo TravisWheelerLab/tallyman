@@ -1,19 +1,15 @@
 extern crate multimap;
 
-use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::BufWriter;
-use std::io::Write;
 use std::path::Path;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use bio::io::fasta;
-use multimap::MultiMap;
 
-use crate::compress::{compress_seq, CompressedSeq};
+use crate::compress::compress_seq;
 use crate::search::{Search, SearchResult};
-use crate::seqloader::{Seq, SeqLoader};
 
 pub mod alphabet;
 pub mod compress;
@@ -45,7 +41,6 @@ fn main() {
     let mut _writer = BufWriter::new(&output);
 
     //read DCEs in to hash structures
-    let alphabet = "ATCG";
     let mut needles = Vec::<u64>::new();
     let mut hits = Vec::<usize>::new();
 

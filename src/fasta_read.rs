@@ -1,8 +1,5 @@
-use std::fmt::Write;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::mem;
-use std::ops::Add;
 use std::path::Path;
 
 use crate::seqloader::Seq;

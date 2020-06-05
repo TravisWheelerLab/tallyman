@@ -1,5 +1,4 @@
-use crate::alphabet::{encode_char, ALPHABET};
-use std::collections::HashMap;
+use crate::alphabet::encode_char;
 
 pub type CompressedSeq = u64;
 

@@ -108,18 +108,21 @@ mod test {
         assert_eq!(results.first().unwrap().needle, 1);
         assert_eq!(results.first().unwrap().offset, 0);
     }
-    /*
+
     #[test]
     fn test_larger_search() {
-        let haystack = Seq::new("id", "ababddddddddddddddddddddddddddddddddabab");
+        let haystack = Seq::new("id", "ACACTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTACAC");
         let needles = vec![
-            Seq::new("id", "cccccccccccccccccccccccccccccccc"),
-            Seq::new("di", "dddddddddddddddddddddddddddddddd"),
+            compress_seq("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC").unwrap(),
+            compress_seq("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT").unwrap(),
         ];
-        let search = Search::new(&haystack, &needles, "abcd");
-        let results: Vec<_> = search.collect();
+        let mut results = Vec::<SearchResult>::new();
+        let mut search = Search::new(&needles);
+        search.search(&haystack, &mut results);
+
         assert_eq!(results.len(), 1);
-        assert_eq!(results.first().unwrap().needle, "di");
+        assert_eq!(results.first().unwrap().haystack, "id");
+        assert_eq!(results.first().unwrap().needle, 1);
         assert_eq!(results.first().unwrap().offset, 4);
-    }*/
+    }
 }
