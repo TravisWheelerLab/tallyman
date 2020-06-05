@@ -74,21 +74,16 @@ fn main() {
         //println!("Next RNAseq input");
         for result in &search_results {
             hits[result.needle] += 1;
-            println!(
-                "{:?} found in {} at offset {}",
-                result.needle, result.haystack, result.offset
-            );
+            // println!(
+            //     "{:?} found in {} at offset {}",
+            //     result.needle, result.haystack, result.offset
+            // );
         }
     }
     let duration = rna_start.elapsed();
     println!("Time elapsed for search is: {:?}", duration);
 
-    /*for (name, num) in hits.iter() {
-        writeln!(
-            &mut _writer,
-            "{}     {}",
-            name, num
-        )
-            .ok();
-    }*/
+    // for (index, count) in hits.iter().enumerate() {
+    //     println!("{} found {} times", index, count);
+    // }
 }
