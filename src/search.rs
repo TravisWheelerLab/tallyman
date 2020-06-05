@@ -1,5 +1,5 @@
 use crate::alphabet::encode_char;
-use crate::seqloader::Seq;
+use crate::sequence::Seq;
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -90,7 +90,7 @@ impl Search {
 mod test {
     use crate::compress::compress_seq;
     use crate::search::{Search, SearchResult};
-    use crate::seqloader::Seq;
+    use crate::sequence::Seq;
 
     #[test]
     fn test_min_size_search() {

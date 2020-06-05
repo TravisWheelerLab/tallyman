@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
-use crate::seqloader::Seq;
+use crate::sequence::Seq;
 
 pub struct SeqLoader<T: BufRead> {
     source_file: T,
@@ -153,7 +153,7 @@ mod test {
     use std::io::Cursor;
 
     use crate::fasta_read::SeqLoader;
-    use crate::seqloader::Seq;
+    use crate::sequence::Seq;
 
     #[test]
     fn test_next_line() {

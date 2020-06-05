@@ -15,7 +15,7 @@ pub mod alphabet;
 pub mod compress;
 pub mod fasta_read;
 pub mod search;
-pub mod seqloader;
+pub mod sequence;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -66,7 +66,7 @@ fn main() {
     let mut loader = fasta_read::SeqLoader::from_path(Path::new(&_rna_file));
     let mut search = Search::new(&needles);
     let mut search_results = Vec::<SearchResult>::new();
-    let mut haystack = seqloader::Seq::new("", "");
+    let mut haystack = sequence::Seq::new("", "");
     while loader.next_seq(&mut haystack) {
         search_results.clear();
         search.search(&haystack, &mut search_results);
