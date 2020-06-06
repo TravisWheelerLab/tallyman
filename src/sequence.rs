@@ -1,33 +1,30 @@
-#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Seq {
     pub identifier: String,
     pub length: usize,
-    pub sequence: Vec<char>,
+    pub characters: [char; 256],
 }
 
 impl Seq {
-    pub fn new(identifier: &str, sequence: &str) -> Seq {
+    pub fn new() -> Seq {
         Seq {
-            identifier: String::from(identifier),
-            length: sequence.len(),
-            sequence: sequence.to_uppercase().chars().collect(),
+            identifier: String::with_capacity(256),
+            length: 0,
+            characters: [255 as char; 256],
         }
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use crate::sequence::Seq;
+    /// Constructor for use in tests to make it easier to build a fake sequence.
+    pub fn pre_filled(id: &str, chars: &str) -> Seq {
+        let mut characters = [255 as char; 256];
+        let chars_indexed: Vec<char> = chars.chars().collect();
+        for i in 0..chars.len() {
+            characters[i] = chars_indexed[i];
+        }
 
-    #[test]
-    fn test_seq_equality() {
-        let s0 = Seq::new("foo", "abcd");
-        let s1 = Seq::new("foo", "abcd");
-        let s2 = Seq::new("bar", "abcd");
-        let s3 = Seq::new("foo", "dcba");
-
-        assert_eq!(s0, s1);
-        assert_ne!(s0, s2);
-        assert_ne!(s0, s3);
+        Seq {
+            identifier: String::from(id),
+            length: chars.len(),
+            characters,
+        }
     }
 }

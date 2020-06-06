@@ -1,4 +1,5 @@
 use crate::alphabet::encode_char;
+use crate::hash::Hash;
 use crate::sequence::Seq;
 use std::collections::HashMap;
 
@@ -50,7 +51,7 @@ impl Search {
             // missing alphabet character since we've already dealt
             // with the other (valid) possibility above.
             while self.haystack_index < self.start_index + 32 {
-                let next_char = haystack.sequence[self.haystack_index];
+                let next_char = haystack.characters[self.haystack_index];
 
                 // If we find a bad character, we basically just restart
                 // the search from the next character.
@@ -94,7 +95,7 @@ mod test {
 
     #[test]
     fn test_min_size_search() {
-        let haystack = Seq::new("id", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        let haystack = Seq::pre_filled("id", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
         let needles = vec![
             compress_seq("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC").unwrap(),
             compress_seq("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").unwrap(),
@@ -111,7 +112,7 @@ mod test {
 
     #[test]
     fn test_larger_search() {
-        let haystack = Seq::new("id", "ACACTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTACAC");
+        let haystack = Seq::pre_filled("id", "ACACTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTACAC");
         let needles = vec![
             compress_seq("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC").unwrap(),
             compress_seq("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT").unwrap(),

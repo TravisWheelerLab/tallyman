@@ -14,6 +14,7 @@ use crate::search::{Search, SearchResult};
 pub mod alphabet;
 pub mod compress;
 pub mod fasta_read;
+pub mod hash;
 pub mod search;
 pub mod sequence;
 
@@ -66,7 +67,7 @@ fn main() {
     let mut loader = fasta_read::SeqLoader::from_path(Path::new(&_rna_file));
     let mut search = Search::new(&needles);
     let mut search_results = Vec::<SearchResult>::new();
-    let mut haystack = sequence::Seq::new("", "");
+    let mut haystack = sequence::Seq::new();
     while loader.next_seq(&mut haystack) {
         search_results.clear();
         search.search(&haystack, &mut search_results);
