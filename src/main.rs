@@ -1,15 +1,13 @@
-extern crate multimap;
-
 use std::env;
 use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
 use std::time::Instant;
 
-use bio::io::fasta;
-
-use crate::compress::compress_seq;
+use crate::compress::compress_chars;
+use crate::fasta_read::SeqLoader;
 use crate::search::{Search, SearchResult};
+use crate::sequence::Seq;
 
 pub mod alphabet;
 pub mod compress;
@@ -20,7 +18,6 @@ pub mod sequence;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    //println!("I got {:?} arguments: {:?}.", args.len() - 1, &args[1..]);
     let mut _rna_file = "";
     let mut _dna_file = "";
     let mut _outfile = "";
@@ -37,42 +34,38 @@ fn main() {
         _outfile = "output.txt";
     }
 
-    //open output file
+    // Create reusable FASTA reading machinery
+    let mut sequence = Seq::new();
+
+    // Load the DCE sequences and pre-compress them
+    let dce_start = Instant::now();
+
+    let mut hits = Vec::<usize>::new();
+    let mut needles = Vec::<u64>::new();
+    let mut dce_loader = SeqLoader::from_path(Path::new(&_dna_file));
+    while dce_loader.next_seq(&mut sequence) {
+        let compressed_seq = compress_chars(sequence.characters, sequence.length);
+        hits.push(0);
+        needles.push(compressed_seq);
+    }
+
+    let duration = dce_start.elapsed();
+    println!("Time to load and hash DCE sequences: {:?}", duration);
+
+    // Open the output file
     let output = File::create(Path::new(_outfile)).unwrap();
     let mut _writer = BufWriter::new(&output);
-
-    //read DCEs in to hash structures
-    let mut needles = Vec::<u64>::new();
-    let mut hits = Vec::<usize>::new();
-
-    // Load DCE sequences and pre-compress them.
-    let dce_start = Instant::now();
-    let reader = fasta::Reader::from_file(Path::new(&_dna_file)).unwrap();
-    for record in reader.records() {
-        let seq = std::str::from_utf8(record.unwrap().seq())
-            .unwrap()
-            .to_string()
-            .to_uppercase();
-        let compressed_seq = compress_seq(&seq).unwrap();
-
-        needles.push(compressed_seq);
-        hits.push(0);
-    }
-    let duration = dce_start.elapsed();
-    println!("Time elapsed for hashing DCEs is: {:?}", duration);
 
     // Search through each of the RNA sequences, reusing
     // the sequence and search results instances.
     let rna_start = Instant::now();
-    let mut loader = fasta_read::SeqLoader::from_path(Path::new(&_rna_file));
+
+    let mut rna_loader = fasta_read::SeqLoader::from_path(Path::new(&_rna_file));
     let mut search = Search::new(&needles);
     let mut search_results = Vec::<SearchResult>::new();
-    let mut haystack = sequence::Seq::new();
-    while loader.next_seq(&mut haystack) {
+    while rna_loader.next_seq(&mut sequence) {
         search_results.clear();
-        search.search(&haystack, &mut search_results);
-
-        //println!("Next RNAseq input");
+        search.search(&sequence, &mut search_results);
         for result in &search_results {
             hits[result.needle] += 1;
             // println!(
@@ -81,10 +74,14 @@ fn main() {
             // );
         }
     }
-    let duration = rna_start.elapsed();
-    println!("Time elapsed for search is: {:?}", duration);
 
+    let duration = rna_start.elapsed();
+    println!("Time to search RNA sequences: {:?}", duration);
+
+    // Report result summary
     // for (index, count) in hits.iter().enumerate() {
-    //     println!("{} found {} times", index, count);
+    //     if *count != 0 {
+    //         println!("{} found {} times", index, count);
+    //     }
     // }
 }

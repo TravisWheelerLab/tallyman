@@ -17,6 +17,15 @@ pub fn compress_seq(seq: &str) -> Option<CompressedSeq> {
     }
 }
 
+pub fn compress_chars(chars: [char; 256], length: usize) -> CompressedSeq {
+    let mut sequence = 0u64;
+    for i in 0..length {
+        let mask = encode_char(chars[i]);
+        sequence = (sequence << 2) | mask;
+    }
+    sequence
+}
+
 #[cfg(test)]
 mod tests {
     use crate::compress::compress_seq;

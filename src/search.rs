@@ -53,16 +53,16 @@ impl Search {
             while self.haystack_index < self.start_index + 32 {
                 let next_char = haystack.characters[self.haystack_index];
 
+                let mask = encode_char(next_char);
+
                 // If we find a bad character, we basically just restart
                 // the search from the next character.
-                // TODO: Find out what an "N" represents
-                if next_char == '-' || next_char == 'N' {
+                if mask == 255 {
                     self.start_index = self.haystack_index + 1;
                     self.haystack_index = self.start_index;
                     continue 'search;
                 }
 
-                let mask = encode_char(next_char);
                 self.haystack_window = (self.haystack_window << 2) | mask;
                 self.haystack_index += 1;
             }
