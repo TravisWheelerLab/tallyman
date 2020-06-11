@@ -1,35 +1,33 @@
 use crate::alphabet::encode_char;
+use crate::constants::HASH_CAPACITY_MULTIPLE;
 use crate::hash::Hash;
 use crate::sequence::Seq;
-use std::collections::HashMap;
 
-#[derive(Debug, PartialEq, Eq)]
 pub struct SearchResult {
     pub haystack: String,
-    pub needle: usize,
+    pub needle_index: usize,
     pub offset: usize,
 }
 
-#[derive(Debug, PartialEq, Eq)]
 pub struct Search {
     haystack_index: usize,
     haystack_size: usize,
     haystack_window: u64,
-    needles: HashMap<u64, usize>,
+    needles: Hash,
     start_index: usize,
 }
 
 impl Search {
     pub fn new(needles: &Vec<u64>) -> Search {
-        let mut needles_map = HashMap::with_capacity(needles.len());
-        for (index, needle) in needles.iter().enumerate() {
-            needles_map.insert(*needle, index);
+        let mut needles_hash = Hash::new(needles.len() * HASH_CAPACITY_MULTIPLE);
+        for needle in needles {
+            needles_hash.add(*needle);
         }
         Search {
             haystack_index: 0,
             haystack_size: 0,
             haystack_window: 0,
-            needles: needles_map,
+            needles: needles_hash,
             start_index: 0,
         }
     }
@@ -74,11 +72,12 @@ impl Search {
             // Compare the current haystack sequence against each of
             // the needle sequences and return the first match we fine.
             // FIXME: This should use the custom hash, build in new()
-            if self.needles.contains_key(&self.haystack_window) {
+            let index = self.needles.contains(self.haystack_window);
+            if index != 0 {
                 let result = SearchResult {
                     // TODO: Can we get rid of this clone? Prolly not
                     haystack: haystack.identifier.clone(),
-                    needle: self.needles[&self.haystack_window],
+                    needle_index: index - 1,
                     offset: self.haystack_index - 32,
                 };
                 results.push(result);
@@ -106,7 +105,7 @@ mod test {
 
         assert_eq!(results.len(), 1);
         assert_eq!(results.first().unwrap().haystack, "id");
-        assert_eq!(results.first().unwrap().needle, 1);
+        assert_eq!(results.first().unwrap().needle_index, 1);
         assert_eq!(results.first().unwrap().offset, 0);
     }
 
@@ -123,7 +122,7 @@ mod test {
 
         assert_eq!(results.len(), 1);
         assert_eq!(results.first().unwrap().haystack, "id");
-        assert_eq!(results.first().unwrap().needle, 1);
+        assert_eq!(results.first().unwrap().needle_index, 1);
         assert_eq!(results.first().unwrap().offset, 4);
     }
 }

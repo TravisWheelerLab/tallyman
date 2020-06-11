@@ -11,6 +11,7 @@ use crate::sequence::Seq;
 
 pub mod alphabet;
 pub mod compress;
+pub mod constants;
 pub mod fasta_read;
 pub mod hash;
 pub mod search;
@@ -44,8 +45,8 @@ fn main() {
     let mut needles = Vec::<u64>::new();
     let mut dce_loader = SeqLoader::from_path(Path::new(&_dna_file));
     while dce_loader.next_seq(&mut sequence) {
-        let compressed_seq = compress_chars(sequence.characters, sequence.length);
         hits.push(0);
+        let compressed_seq = compress_chars(sequence.characters, sequence.length);
         needles.push(compressed_seq);
     }
 
@@ -67,7 +68,7 @@ fn main() {
         search_results.clear();
         search.search(&sequence, &mut search_results);
         for result in &search_results {
-            hits[result.needle] += 1;
+            hits[result.needle_index] += 1;
             // println!(
             //     "{:?} found in {} at offset {}",
             //     result.needle, result.haystack, result.offset
