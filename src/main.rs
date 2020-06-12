@@ -1,6 +1,6 @@
 use std::env;
 use std::fs::File;
-use std::io::BufWriter;
+use std::io::{BufWriter, Write};
 use std::path::Path;
 use std::time::Instant;
 
@@ -64,15 +64,20 @@ fn main() {
     let mut rna_loader = fasta_read::SeqLoader::from_path(Path::new(&_rna_file));
     let mut search = Search::new(&needles);
     let mut search_results = Vec::<SearchResult>::new();
+    _writer
+        .write_fmt(format_args!("dce index,rna identifier,offset"))
+        .unwrap();
     while rna_loader.next_seq(&mut sequence) {
         search_results.clear();
         search.search(&sequence, &mut search_results);
         for result in &search_results {
             hits[result.needle_index] += 1;
-            // println!(
-            //     "{:?} found in {} at offset {}",
-            //     result.needle, result.haystack, result.offset
-            // );
+            _writer
+                .write_fmt(format_args!(
+                    "{},{},{}\n",
+                    result.needle_index, result.haystack, result.offset
+                ))
+                .unwrap();
         }
     }
 
@@ -80,9 +85,10 @@ fn main() {
     println!("Time to search RNA sequences: {:?}", duration);
 
     // Report result summary
-    // for (index, count) in hits.iter().enumerate() {
-    //     if *count != 0 {
-    //         println!("{} found {} times", index, count);
-    //     }
-    // }
+    println!("dce index,count");
+    for (index, count) in hits.iter().enumerate() {
+        if *count != 0 {
+            println!("{},{}", index, count);
+        }
+    }
 }
