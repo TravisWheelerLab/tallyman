@@ -96,8 +96,8 @@ mod test {
     fn test_min_size_search() {
         let haystack = Seq::pre_filled("id", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
         let needles = vec![
-            compress_seq("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC").unwrap(),
-            compress_seq("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").unwrap(),
+            compress_seq("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"),
+            compress_seq("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
         ];
         let mut results = Vec::<SearchResult>::new();
         let mut search = Search::new(&needles);
@@ -113,8 +113,8 @@ mod test {
     fn test_larger_search() {
         let haystack = Seq::pre_filled("id", "ACACTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTACAC");
         let needles = vec![
-            compress_seq("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC").unwrap(),
-            compress_seq("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT").unwrap(),
+            compress_seq("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"),
+            compress_seq("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"),
         ];
         let mut results = Vec::<SearchResult>::new();
         let mut search = Search::new(&needles);
