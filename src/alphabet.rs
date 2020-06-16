@@ -36,4 +36,12 @@ mod test {
             assert_eq!(encoded, index as u64, "encode {}", character);
         }
     }
+
+    #[test]
+    fn test_encode_invalid_char() {
+        for character in ['F', 'K', 'z', 'y'].iter() {
+            let encoded = encode_char(*character);
+            assert_eq!(encoded, 255);
+        }
+    }
 }
