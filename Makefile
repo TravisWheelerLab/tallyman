@@ -22,3 +22,4 @@ setup-mac:
 
 fixtures/%.fasta: fixtures/%.tar.xz
 	tar -C fixtures -x -f $<
+	touch $@
