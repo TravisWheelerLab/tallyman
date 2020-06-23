@@ -5,7 +5,7 @@ use crate::sequence::Seq;
 
 pub struct SearchResult {
     pub haystack: String,
-    pub needle_index: usize,
+    pub needle: u64,
     pub offset: usize,
 }
 
@@ -71,13 +71,11 @@ impl Search {
 
             // Compare the current haystack sequence against each of
             // the needle sequences and return the first match we fine.
-            // FIXME: This should use the custom hash, build in new()
-            let index = self.needles.contains(self.haystack_window);
-            if index != 0 {
+            if self.needles.contains(self.haystack_window) {
                 let result = SearchResult {
                     // TODO: Can we get rid of this clone? Prolly not
                     haystack: haystack.identifier.clone(),
-                    needle_index: index - 1,
+                    needle: self.haystack_window,
                     offset: self.haystack_index - 32,
                 };
                 results.push(result);
@@ -94,10 +92,10 @@ mod test {
 
     #[test]
     fn test_min_size_search() {
-        let haystack = Seq::pre_filled("id", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        let haystack = Seq::pre_filled("id", "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG");
         let needles = vec![
             compress_seq("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"),
-            compress_seq("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+            compress_seq("GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG"),
         ];
         let mut results = Vec::<SearchResult>::new();
         let mut search = Search::new(&needles);
@@ -105,7 +103,7 @@ mod test {
 
         assert_eq!(results.len(), 1);
         assert_eq!(results.first().unwrap().haystack, "id");
-        assert_eq!(results.first().unwrap().needle_index, 1);
+        // assert_eq!(results.first().unwrap().needle, 1);
         assert_eq!(results.first().unwrap().offset, 0);
     }
 
@@ -122,7 +120,7 @@ mod test {
 
         assert_eq!(results.len(), 1);
         assert_eq!(results.first().unwrap().haystack, "id");
-        assert_eq!(results.first().unwrap().needle_index, 1);
+        // assert_eq!(results.first().unwrap().needle_index, 1);
         assert_eq!(results.first().unwrap().offset, 4);
     }
 }

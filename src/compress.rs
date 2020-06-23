@@ -1,4 +1,5 @@
 use crate::alphabet::encode_char;
+use crate::constants::BUFFER_SIZE;
 
 pub type CompressedSeq = u64;
 
@@ -17,7 +18,7 @@ pub fn compress_seq(seq: &str) -> CompressedSeq {
     }
 }
 
-pub fn compress_chars(chars: [char; 256], length: usize) -> CompressedSeq {
+pub fn compress_chars(chars: [char; BUFFER_SIZE], length: usize) -> CompressedSeq {
     let mut sequence = 0u64;
     for i in 0..length {
         let mask = encode_char(chars[i]);

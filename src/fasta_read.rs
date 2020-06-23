@@ -2,14 +2,15 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
+use crate::constants::BUFFER_SIZE;
 use crate::sequence::Seq;
 
 pub struct SeqLoader<T: BufRead> {
     source_file: T,
-    read_buffer: [u8; 256],
+    read_buffer: [u8; BUFFER_SIZE],
     read_index: usize,
     read_length: usize,
-    line_buffer: [u8; 256],
+    line_buffer: [u8; BUFFER_SIZE],
     line_length: usize,
 }
 
@@ -18,10 +19,10 @@ impl SeqLoader<BufReader<File>> {
         let file = File::open(path).unwrap();
         let mut loader = SeqLoader {
             source_file: BufReader::new(file),
-            read_buffer: [0u8; 256],
+            read_buffer: [0u8; BUFFER_SIZE],
             read_index: 0,
             read_length: 0,
-            line_buffer: [0u8; 256],
+            line_buffer: [0u8; BUFFER_SIZE],
             line_length: 0,
         };
         loader.next_line();
@@ -33,10 +34,10 @@ impl<T: BufRead> SeqLoader<T> {
     pub fn from_bufread(file: T) -> SeqLoader<T> {
         let mut loader = SeqLoader {
             source_file: file,
-            read_buffer: [0u8; 256],
+            read_buffer: [0u8; BUFFER_SIZE],
             read_index: 0,
             read_length: 0,
-            line_buffer: [0u8; 256],
+            line_buffer: [0u8; BUFFER_SIZE],
             line_length: 0,
         };
         loader.next_line();

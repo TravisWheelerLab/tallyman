@@ -71,11 +71,11 @@ fn main() {
         search_results.clear();
         search.search(&sequence, &mut search_results);
         for result in &search_results {
-            hits[result.needle_index] += 1;
+            //hits[result.needle_index] += 1;
             _writer
                 .write_fmt(format_args!(
                     "{},{},{}\n",
-                    result.needle_index, result.haystack, result.offset
+                    result.needle, result.haystack, result.offset
                 ))
                 .unwrap();
         }
