@@ -13,6 +13,7 @@ pub struct Search {
     haystack_index: usize,
     haystack_size: usize,
     haystack_window: u64,
+    rev_haystack: u64,
     needles: Hash,
     start_index: usize,
 }
@@ -27,6 +28,7 @@ impl Search {
             haystack_index: 0,
             haystack_size: 0,
             haystack_window: 0,
+            rev_haystack: 0,
             needles: needles_hash,
             start_index: 0,
         }
@@ -37,6 +39,7 @@ impl Search {
         self.haystack_index = 0;
         self.haystack_size = haystack.length;
         self.haystack_window = 0;
+        self.rev_haystack = 0;
         self.start_index = 0;
 
         // If we don't have at least 32 nucleotides remaining, we
@@ -62,6 +65,7 @@ impl Search {
                 }
 
                 self.haystack_window = (self.haystack_window << 2) | mask;
+                self.rev_haystack = (self.haystack_window >> 2) | !mask;
                 self.haystack_index += 1;
             }
 
@@ -71,7 +75,7 @@ impl Search {
 
             // Compare the current haystack sequence against each of
             // the needle sequences and return the first match we fine.
-            if self.needles.contains(self.haystack_window) {
+            if self.needles.contains(self.haystack_window) | self.needles.contains(self.rev_haystack) {
                 let result = SearchResult {
                     // TODO: Can we get rid of this clone? Prolly not
                     haystack: haystack.identifier.clone(),
@@ -86,7 +90,7 @@ impl Search {
 
 #[cfg(test)]
 mod test {
-    use crate::compress::compress_seq;
+    use crate::compress::compress_dna_seq;
     use crate::search::{Search, SearchResult};
     use crate::sequence::Seq;
 
@@ -94,8 +98,8 @@ mod test {
     fn test_min_size_search() {
         let haystack = Seq::pre_filled("id", "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG");
         let needles = vec![
-            compress_seq("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"),
-            compress_seq("GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG"),
+            compress_dna_seq("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"),
+            compress_dna_seq("GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG"),
         ];
         let mut results = Vec::<SearchResult>::new();
         let mut search = Search::new(&needles);
@@ -111,8 +115,8 @@ mod test {
     fn test_larger_search() {
         let haystack = Seq::pre_filled("id", "ACACTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTACAC");
         let needles = vec![
-            compress_seq("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"),
-            compress_seq("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"),
+            compress_dna_seq("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"),
+            compress_dna_seq("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"),
         ];
         let mut results = Vec::<SearchResult>::new();
         let mut search = Search::new(&needles);

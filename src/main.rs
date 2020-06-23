@@ -65,7 +65,7 @@ fn main() {
     let mut search = Search::new(&needles);
     let mut search_results = Vec::<SearchResult>::new();
     _writer
-        .write_fmt(format_args!("dce index,rna identifier,offset\n"))
+        .write_fmt(format_args!("dce index, rna identifier, offset\n"))
         .unwrap();
     while rna_loader.next_seq(&mut sequence) {
         search_results.clear();
@@ -74,7 +74,7 @@ fn main() {
             //hits[result.needle_index] += 1;
             _writer
                 .write_fmt(format_args!(
-                    "{},{},{}\n",
+                    "{}, {}, {}\n",
                     result.needle, result.haystack, result.offset
                 ))
                 .unwrap();
