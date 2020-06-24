@@ -66,7 +66,7 @@ impl Search {
 
                 self.haystack_window = (self.haystack_window << 2) | mask;
                 let new_mask = !mask;
-                self.rev_haystack = (self.haystack_window >> 2) | (new_mask<<62);
+                self.rev_haystack = (self.rev_haystack >> 2) | (new_mask<<62);
                 self.haystack_index += 1;
             }
 
