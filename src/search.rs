@@ -1,45 +1,47 @@
-extern crate multimap;
-use multimap::MultiMap;
-use crate::alphabet::make_alphabet;
-use crate::seqloader::Seq;
-use std::collections::HashMap;
+use crate::alphabet::encode_char;
+use crate::constants::HASH_CAPACITY_MULTIPLE;
+use crate::hash::Hash;
+use crate::sequence::Seq;
 
-#[derive(Debug, PartialEq, Eq)]
 pub struct SearchResult {
     pub haystack: String,
-    pub needle: std::vec::Vec<std::string::String>,
+    pub needle: u64,
     pub offset: usize,
 }
 
-#[derive(Debug, PartialEq, Eq)]
 pub struct Search {
-    alphabet: HashMap<char, u64>,
-    haystack: Seq,
     haystack_index: usize,
     haystack_size: usize,
     haystack_window: u64,
-    needles: MultiMap<u64, String>,
+    rev_haystack: u64,
+    needles: Hash,
     start_index: usize,
 }
 
 impl Search {
-    pub fn new(haystack: &Seq, needles: &MultiMap<u64, String>, alphabet_map: &HashMap<char, u64>) -> Search {
+    pub fn new(needles: &Vec<u64>) -> Search {
+        let mut needles_hash = Hash::new(needles.len() * HASH_CAPACITY_MULTIPLE);
+        for needle in needles {
+            needles_hash.add(*needle);
+        }
         Search {
-            alphabet: alphabet_map.clone(),
-            haystack: (*haystack).clone(),
             haystack_index: 0,
-            haystack_size: haystack.length,
+            haystack_size: 0,
             haystack_window: 0,
-            needles: needles.clone(),
+            rev_haystack: 0,
+            needles: needles_hash,
             start_index: 0,
         }
     }
-}
 
-impl Iterator for Search {
-    type Item = SearchResult;
+    pub fn search(&mut self, haystack: &Seq, results: &mut Vec<SearchResult>) {
+        // Reset in preparation for the search.
+        self.haystack_index = 0;
+        self.haystack_size = haystack.length;
+        self.haystack_window = 0;
+        self.rev_haystack = 0;
+        self.start_index = 0;
 
-    fn next(&mut self) -> Option<Self::Item> {
         // If we don't have at least 32 nucleotides remaining, we
         // know we are finished.
         'search: while self.start_index <= self.haystack_size - 32 {
@@ -50,77 +52,91 @@ impl Iterator for Search {
             // missing alphabet character since we've already dealt
             // with the other (valid) possibility above.
             while self.haystack_index < self.start_index + 32 {
-                // FIXME: Must have a bug when there's a blank in a certain place
-                let next_char = self.haystack.sequence[self.haystack_index];
+                let next_char = haystack.characters[self.haystack_index];
+
+                let mask = encode_char(next_char);
 
                 // If we find a bad character, we basically just restart
                 // the search from the next character.
-                // TODO: Find out what an "N" represents
-                if next_char == '-' || next_char == 'N' {
+                if mask == 255 {
                     self.start_index = self.haystack_index + 1;
                     self.haystack_index = self.start_index;
                     continue 'search;
                 }
 
-                let mask = match self.alphabet.get(&next_char) {
-                    Some(m) => m,
-                    None => panic!(format!("unrecognized character {}", next_char)),
-                };
-                self.haystack_window = (self.haystack_window << 2) | *mask;
+                self.haystack_window = (self.haystack_window << 2) | mask;
+                let new_mask = !mask;
+                self.rev_haystack = (self.rev_haystack >> 2) | (new_mask<<62);
                 self.haystack_index += 1;
             }
-            self.start_index += 1;
-
-
-            // Compare the current haystack sequence against each of
-            // the needle sequences and return the first match we fine.
-/*            if self.needles.contains_key(&self.haystack_window) {
-                //println!("Hit!");
-                return Some(SearchResult {
-                    haystack: self.haystack.identifier.clone(),
-                    needle: (*self.needles.get_vec(&self.haystack_window).unwrap()).to_owned(),
-                    offset: self.haystack_index - 32,
-                });
-            }*/
 
             // Bump the start index in order to slide the window one
             // nucleotide to the right.
-        }
+            self.start_index += 1;
 
-        None
+            // Compare the current haystack sequence against each of
+            // the needle sequences and return the first match we fine.
+            if self.needles.contains(self.haystack_window){
+                let result = SearchResult {
+                    // TODO: Can we get rid of this clone? Prolly not
+                    haystack: haystack.identifier.clone(),
+                    needle: self.haystack_window,
+                    offset: self.haystack_index - 32,
+                };
+                results.push(result);
+            }
+            if self.needles.contains(self.rev_haystack ) {
+                println!("Forward: {}", self.haystack_window);
+                println!("Reverse: {}\n", self.rev_haystack);
+                let result = SearchResult {
+                    // TODO: Can we get rid of this clone? Prolly not
+                    haystack: haystack.identifier.clone(),
+                    needle: self.rev_haystack,
+                    offset: self.haystack_index - 32,
+                };
+                results.push(result);
+            }
+        }
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::seqloader::Seq;
-    use crate::search::Search;
+    use crate::compress::compress_dna_seq;
+    use crate::search::{Search, SearchResult};
+    use crate::sequence::Seq;
 
-/*    #[test]
+    #[test]
     fn test_min_size_search() {
-        let haystack = Seq::new("id", "dddddddddddddddddddddddddddddddd");
+        let haystack = Seq::pre_filled("id", "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG");
         let needles = vec![
-            Seq::new("id", "cccccccccccccccccccccccccccccccc"),
-            Seq::new("di", "dddddddddddddddddddddddddddddddd"),
+            compress_dna_seq("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"),
+            compress_dna_seq("GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG"),
         ];
-        let search = Search::new(&haystack, &needles, "abcd");
-        let results: Vec<_> = search.collect();
+        let mut results = Vec::<SearchResult>::new();
+        let mut search = Search::new(&needles);
+        search.search(&haystack, &mut results);
+
         assert_eq!(results.len(), 1);
-        assert_eq!(results.first().unwrap().needle, "di");
+        assert_eq!(results.first().unwrap().haystack, "id");
+        // assert_eq!(results.first().unwrap().needle, 1);
         assert_eq!(results.first().unwrap().offset, 0);
     }
 
     #[test]
     fn test_larger_search() {
-        let haystack = Seq::new("id", "ababddddddddddddddddddddddddddddddddabab");
+        let haystack = Seq::pre_filled("id", "ACACTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTACAC");
         let needles = vec![
-            Seq::new("id", "cccccccccccccccccccccccccccccccc"),
-            Seq::new("di", "dddddddddddddddddddddddddddddddd"),
+            compress_dna_seq("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"),
+            compress_dna_seq("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"),
         ];
-        let search = Search::new(&haystack, &needles, "abcd");
-        let results: Vec<_> = search.collect();
+        let mut results = Vec::<SearchResult>::new();
+        let mut search = Search::new(&needles);
+        search.search(&haystack, &mut results);
+
         assert_eq!(results.len(), 1);
-        assert_eq!(results.first().unwrap().needle, "di");
+        assert_eq!(results.first().unwrap().haystack, "id");
+        // assert_eq!(results.first().unwrap().needle_index, 1);
         assert_eq!(results.first().unwrap().offset, 4);
-    }*/
+    }
 }

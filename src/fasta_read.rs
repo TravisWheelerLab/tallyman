@@ -1,18 +1,16 @@
-use std::fmt::Write;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::mem;
-use std::ops::Add;
 use std::path::Path;
 
-use crate::seqloader::Seq;
+use crate::constants::BUFFER_SIZE;
+use crate::sequence::Seq;
 
 pub struct SeqLoader<T: BufRead> {
     source_file: T,
-    read_buffer: [u8; 256],
+    read_buffer: [u8; BUFFER_SIZE],
     read_index: usize,
     read_length: usize,
-    line_buffer: [u8; 256],
+    line_buffer: [u8; BUFFER_SIZE],
     line_length: usize,
 }
 
@@ -21,10 +19,10 @@ impl SeqLoader<BufReader<File>> {
         let file = File::open(path).unwrap();
         let mut loader = SeqLoader {
             source_file: BufReader::new(file),
-            read_buffer: [0u8; 256],
+            read_buffer: [0u8; BUFFER_SIZE],
             read_index: 0,
             read_length: 0,
-            line_buffer: [0u8; 256],
+            line_buffer: [0u8; BUFFER_SIZE],
             line_length: 0,
         };
         loader.next_line();
@@ -36,10 +34,10 @@ impl<T: BufRead> SeqLoader<T> {
     pub fn from_bufread(file: T) -> SeqLoader<T> {
         let mut loader = SeqLoader {
             source_file: file,
-            read_buffer: [0u8; 256],
+            read_buffer: [0u8; BUFFER_SIZE],
             read_index: 0,
             read_length: 0,
-            line_buffer: [0u8; 256],
+            line_buffer: [0u8; BUFFER_SIZE],
             line_length: 0,
         };
         loader.next_line();
@@ -48,7 +46,7 @@ impl<T: BufRead> SeqLoader<T> {
 }
 
 impl<T: BufRead> SeqLoader<T> {
-    /// Read into the given buffer, whether the
+    /// Read into the read buffer, whether the
     /// data comes from the overflow or the file.
     fn fill_buffer(&mut self) {
         if self.read_index >= self.read_length {
@@ -87,7 +85,7 @@ impl<T: BufRead> SeqLoader<T> {
 
     /// Read a single Seq from the file and store it in the given instance.
     pub fn next_seq(&mut self, seq: &mut Seq) -> bool {
-        let mut identifier = String::new();
+        seq.identifier.clear();
 
         if self.line_length == 0 {
             // We didn't have any more data and we weren't
@@ -103,10 +101,9 @@ impl<T: BufRead> SeqLoader<T> {
         }
 
         for i in 1..self.line_length {
-            identifier.push(self.line_buffer[i] as char);
+            seq.identifier.push(self.line_buffer[i] as char);
         }
 
-        let mut sequence = ['.'; 256];
         let mut sequence_length = 0;
 
         // Run until we have a new sequence or have determined
@@ -134,7 +131,7 @@ impl<T: BufRead> SeqLoader<T> {
 
             for i in 0..self.line_length {
                 let c = self.line_buffer[i];
-                sequence[i + sequence_length] = if c >= 97 && c <= 122 {
+                seq.characters[i + sequence_length] = if c >= 97 && c <= 122 {
                     (c - 32) as char
                 } else {
                     c as char
@@ -143,9 +140,7 @@ impl<T: BufRead> SeqLoader<T> {
             sequence_length += self.line_length;
         }
 
-        seq.identifier = identifier;
         seq.length = sequence_length;
-        seq.sequence = sequence[0..sequence_length].to_vec();
 
         true
     }
@@ -155,8 +150,8 @@ impl<T: BufRead> SeqLoader<T> {
 mod test {
     use std::io::Cursor;
 
-    use crate::fasta::Seq;
     use crate::fasta_read::SeqLoader;
+    use crate::sequence::Seq;
 
     #[test]
     fn test_next_line() {
@@ -186,18 +181,27 @@ mod test {
     fn test_read_simple() {
         let file = Cursor::new(String::from(">foo\nabcd\n>bar\ndcba"));
         let mut loader = SeqLoader::from_bufread(file);
-        let seq = &mut Seq::new("", "");
+        let seq = &mut Seq::new();
 
         assert_eq!(seq.identifier, "");
-        assert_eq!(seq.sequence, vec!());
+        assert_eq!(
+            seq.characters[0..seq.length],
+            Vec::<char>::new()[0..seq.length]
+        );
 
         assert_eq!(loader.next_seq(seq), true);
         assert_eq!(seq.identifier, "foo");
-        assert_eq!(seq.sequence, "ABCD".chars().collect::<Vec<char>>());
+        assert_eq!(
+            seq.characters[0..seq.length],
+            "ABCD".chars().collect::<Vec<char>>()[0..seq.length]
+        );
 
         assert_eq!(loader.next_seq(seq), true);
         assert_eq!(seq.identifier, "bar");
-        assert_eq!(seq.sequence, "DCBA".chars().collect::<Vec<char>>());
+        assert_eq!(
+            seq.characters[0..seq.length],
+            "DCBA".chars().collect::<Vec<char>>()[0..seq.length]
+        );
 
         assert_eq!(loader.next_seq(seq), false);
     }
