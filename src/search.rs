@@ -87,11 +87,11 @@ impl Search {
             }
             if self.needles.contains(self.rev_haystack ) {
                 println!("Forward: {}", self.haystack_window);
-                println!("Reverse: {}", self.rev_haystack);
+                println!("Reverse: {}\n", self.rev_haystack);
                 let result = SearchResult {
                     // TODO: Can we get rid of this clone? Prolly not
                     haystack: haystack.identifier.clone(),
-                    needle: self.haystack_window,
+                    needle: self.rev_haystack,
                     offset: self.haystack_index - 32,
                 };
                 results.push(result);
