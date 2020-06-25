@@ -3,6 +3,7 @@
 /// to be extremely lightweight to improve performance.
 pub struct Hash {
     container: Vec<u64>,
+    hits: Vec<u16>,
     capacity: u64,
 }
 
@@ -10,6 +11,7 @@ impl Hash {
     pub fn new(capacity: usize) -> Hash {
         Hash {
             container: vec![0; capacity],
+            hits: vec![0; capacity],
             capacity: capacity as u64,
         }
     }
