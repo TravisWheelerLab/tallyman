@@ -84,6 +84,7 @@ impl Search {
                     offset: self.haystack_index - 32,
                 };
                 results.push(result);
+                self.needles.inc_hits(self.haystack_window);
             }
             if self.needles.contains(self.rev_haystack ) {
                 println!("Forward: {}", self.haystack_window);
@@ -95,6 +96,7 @@ impl Search {
                     offset: self.haystack_index - 32,
                 };
                 results.push(result);
+                self.needles.inc_hits(self.rev_haystack);
             }
         }
     }

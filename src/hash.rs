@@ -68,6 +68,28 @@ impl Hash {
 
         false
     }
+
+    pub fn inc_hits(&mut self, value: u64) {
+        let hv = value % self.capacity;
+        let hv_index = hv as usize;
+        let mut probed_index = hv_index;
+
+        // Find the next empty slot
+        while self.container[probed_index] != 0 {
+            probed_index += 1;
+
+            if probed_index >= self.capacity as usize {
+                probed_index = 0;
+            }
+
+            //If we are at an index that matches the DCE we're looking
+            //for, then increment the hits array at that index and stop
+            if self.container[probed_index] == value{
+                self.hits[probed_index] += 1;
+                probed_index = 0;
+            }
+        }
+    }
 }
 
 #[cfg(test)]
