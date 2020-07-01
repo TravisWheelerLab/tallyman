@@ -7,6 +7,7 @@ pub struct SearchResult {
     pub haystack: String,
     pub needle: u64,
     pub offset: usize,
+    pub hit_index: usize,
 }
 
 pub struct Search {
@@ -19,17 +20,17 @@ pub struct Search {
 }
 
 impl Search {
-    pub fn new(needles: &Vec<u64>) -> Search {
-        let mut needles_hash = Hash::new(needles.len() * HASH_CAPACITY_MULTIPLE);
+    pub fn new(needles_hash: &Hash) -> Search {
+/*        let mut needles_hash = Hash::new(needles.len() * HASH_CAPACITY_MULTIPLE);
         for needle in needles {
             needles_hash.add(*needle);
-        }
+        }*/
         Search {
             haystack_index: 0,
             haystack_size: 0,
             haystack_window: 0,
             rev_haystack: 0,
-            needles: needles_hash,
+            needles: *needles_hash.clone(),
             start_index: 0,
         }
     }
@@ -77,30 +78,35 @@ impl Search {
             // Compare the current haystack sequence against each of
             // the needle sequences and return the first match we fine.
             if self.needles.contains(self.haystack_window){
+                self.needles.inc_hits(self.haystack_window);
                 let result = SearchResult {
                     // TODO: Can we get rid of this clone? Prolly not
                     haystack: haystack.identifier.clone(),
                     needle: self.haystack_window,
                     offset: self.haystack_index - 32,
+                    hit_index: self.needles.get_index(self.haystack_window),
                 };
                 results.push(result);
-                self.needles.inc_hits(self.haystack_window);
             }
             if self.needles.contains(self.rev_haystack ) {
-                println!("Forward: {}", self.haystack_window);
-                println!("Reverse: {}\n", self.rev_haystack);
+                self.needles.inc_hits(self.rev_haystack);
                 let result = SearchResult {
                     // TODO: Can we get rid of this clone? Prolly not
                     haystack: haystack.identifier.clone(),
                     needle: self.rev_haystack,
                     offset: self.haystack_index - 32,
+                    hit_index: self.needles.get_index(self.rev_haystack),
                 };
                 results.push(result);
-                self.needles.inc_hits(self.rev_haystack);
             }
         }
     }
+
+    pub fn print_hits(&mut self) {
+        self.needles.print_hits_all();
+    }
 }
+
 
 #[cfg(test)]
 mod test {
@@ -116,7 +122,7 @@ mod test {
             compress_dna_seq("GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG"),
         ];
         let mut results = Vec::<SearchResult>::new();
-        let mut search = Search::new(&needles);
+        let mut search = Search::new(needles_hash);
         search.search(&haystack, &mut results);
 
         assert_eq!(results.len(), 1);
@@ -133,7 +139,7 @@ mod test {
             compress_dna_seq("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"),
         ];
         let mut results = Vec::<SearchResult>::new();
-        let mut search = Search::new(&needles);
+        let mut search = Search::new(needles_hash);
         search.search(&haystack, &mut results);
 
         assert_eq!(results.len(), 1);

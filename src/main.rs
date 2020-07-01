@@ -8,6 +8,8 @@ use crate::compress::compress_chars;
 use crate::fasta_read::SeqLoader;
 use crate::search::{Search, SearchResult};
 use crate::sequence::Seq;
+use crate::hash::Hash;
+use crate::constants::HASH_CAPACITY_MULTIPLE;
 
 pub mod alphabet;
 pub mod compress;
@@ -41,13 +43,17 @@ fn main() {
     // Load the DCE sequences and pre-compress them
     let dce_start = Instant::now();
 
-    let mut hits = Vec::<usize>::new();
     let mut needles = Vec::<u64>::new();
     let mut dce_loader = SeqLoader::from_path(Path::new(&_dna_file));
     while dce_loader.next_seq(&mut sequence) {
-        hits.push(0);
         let compressed_seq = compress_chars(sequence.characters, sequence.length);
         needles.push(compressed_seq);
+    }
+
+    let mut hits = vec![0; needles.len() * HASH_CAPACITY_MULTIPLE];
+    let mut needles_hash = Hash::new(needles.len() * HASH_CAPACITY_MULTIPLE);
+    for needle in needles {
+        needles_hash.add(needle);
     }
 
     let duration = dce_start.elapsed();
@@ -62,7 +68,7 @@ fn main() {
     let rna_start = Instant::now();
 
     let mut rna_loader = fasta_read::SeqLoader::from_path(Path::new(&_rna_file));
-    let mut search = Search::new(&needles);
+    let mut search = Search::new(&needles_hash);
     let mut search_results = Vec::<SearchResult>::new();
     _writer
         .write_fmt(format_args!("dce index, rna identifier, offset\n"))
@@ -71,7 +77,7 @@ fn main() {
         search_results.clear();
         search.search(&sequence, &mut search_results);
         for result in &search_results {
-            //hits[result.needle_index] += 1;
+            hits[result.hit_index] += 1;
             _writer
                 .write_fmt(format_args!(
                     "{}, {}, {}\n",
@@ -84,11 +90,13 @@ fn main() {
     let duration = rna_start.elapsed();
     println!("Time to search RNA sequences: {:?}", duration);
 
+    search.print_hits();
+
     // Report result summary
-    println!("dce index,count");
+/*    println!("dce index, count");
     for (index, count) in hits.iter().enumerate() {
         if *count != 0 {
             println!("{},{}", index, count);
         }
-    }
+    }*/
 }

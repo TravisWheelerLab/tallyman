@@ -1,6 +1,7 @@
 /// A very simple hash set implementation that uses
 /// linear probing to handle collisions. This is intended
 /// to be extremely lightweight to improve performance.
+#[derive(Clone)]
 pub struct Hash {
     container: Vec<u64>,
     hits: Vec<u16>,
@@ -69,12 +70,42 @@ impl Hash {
         false
     }
 
+    pub fn get_index(&mut self, value: u64) -> usize {
+        let hv = value % self.capacity;
+        let hv_index = hv as usize;
+        let mut probed_index = hv_index;
+
+        // return if it's in the index calculated
+        if self.container[probed_index] == value{
+            return probed_index;
+        }
+        //otherwise we need to linear probe until
+        //the DCE is found at subsequent indices
+        else{
+            while self.container[probed_index] != 0 {
+                //loop to increment index, looking for the
+                //index that actually contains the given DCE
+                probed_index += 1;
+
+                if probed_index >= self.capacity as usize {
+                    probed_index = 0;
+                }
+
+                if self.container[probed_index] == value{
+                    return probed_index;
+                }
+            }
+        }
+        return probed_index;
+    }
+
+
     pub fn inc_hits(&mut self, value: u64) {
         let hv = value % self.capacity;
         let hv_index = hv as usize;
         let mut probed_index = hv_index;
 
-        // Find the next empty slot
+        // Linear probing
         while self.container[probed_index] != 0 {
             probed_index += 1;
 
@@ -90,6 +121,39 @@ impl Hash {
             }
         }
     }
+
+    pub fn print_hits_all(&mut self) {
+        for count in &self.hits {
+            println!("Count is {}", *count);
+            if *count != 0 {
+                println!("{}", *count);
+            }
+        }
+    }
+
+    pub fn print_hit(&mut self, value: u64) {
+        println!("Hits for {} are: ", value);
+        let hv = value % self.capacity;
+        let hv_index = hv as usize;
+        let mut probed_index = hv_index;
+
+        // Linear probing
+        while self.container[probed_index] != 0 {
+            probed_index += 1;
+
+            if probed_index >= self.capacity as usize {
+                probed_index = 0;
+            }
+
+            //If we are at an index that matches the DCE we're looking
+            //for, then increment the hits array at that index and stop
+            if self.container[probed_index] == value{
+                println!("{}", self.hits[probed_index]);
+                probed_index = 0;
+            }
+        }
+    }
+
 }
 
 #[cfg(test)]
