@@ -2,6 +2,7 @@ use crate::alphabet::encode_char;
 use crate::constants::HASH_CAPACITY_MULTIPLE;
 use crate::hash::Hash;
 use crate::sequence::Seq;
+use std::ops::DerefMut;
 
 pub struct SearchResult {
     pub haystack: String,
@@ -15,22 +16,23 @@ pub struct Search {
     haystack_size: usize,
     haystack_window: u64,
     rev_haystack: u64,
-    needles: Hash,
+    pub needles: Hash,
     start_index: usize,
 }
 
 impl Search {
-    pub fn new(needles_hash: &Hash) -> Search {
-/*        let mut needles_hash = Hash::new(needles.len() * HASH_CAPACITY_MULTIPLE);
+    pub fn new(needles: Vec<u64>) -> Search {
+        let mut needles_hash = Hash::new(needles.len() * HASH_CAPACITY_MULTIPLE);
         for needle in needles {
-            needles_hash.add(*needle);
-        }*/
+            needles_hash.add(needle);
+        }
+
         Search {
             haystack_index: 0,
             haystack_size: 0,
             haystack_window: 0,
             rev_haystack: 0,
-            needles: *needles_hash.clone(),
+            needles: needles_hash,
             start_index: 0,
         }
     }
@@ -110,7 +112,7 @@ impl Search {
 
 #[cfg(test)]
 mod test {
-    use crate::compress::compress_dna_seq;
+    use crate::compress::compress_seq;
     use crate::search::{Search, SearchResult};
     use crate::sequence::Seq;
 
@@ -118,8 +120,8 @@ mod test {
     fn test_min_size_search() {
         let haystack = Seq::pre_filled("id", "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG");
         let needles = vec![
-            compress_dna_seq("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"),
-            compress_dna_seq("GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG"),
+            compress_seq("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"),
+            compress_seq("GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG"),
         ];
         let mut results = Vec::<SearchResult>::new();
         let mut search = Search::new(needles_hash);
@@ -135,8 +137,8 @@ mod test {
     fn test_larger_search() {
         let haystack = Seq::pre_filled("id", "ACACTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTACAC");
         let needles = vec![
-            compress_dna_seq("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"),
-            compress_dna_seq("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"),
+            compress_seq("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"),
+            compress_seq("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"),
         ];
         let mut results = Vec::<SearchResult>::new();
         let mut search = Search::new(needles_hash);

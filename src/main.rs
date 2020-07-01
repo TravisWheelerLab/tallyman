@@ -51,10 +51,6 @@ fn main() {
     }
 
     let mut hits = vec![0; needles.len() * HASH_CAPACITY_MULTIPLE];
-    let mut needles_hash = Hash::new(needles.len() * HASH_CAPACITY_MULTIPLE);
-    for needle in needles {
-        needles_hash.add(needle);
-    }
 
     let duration = dce_start.elapsed();
     println!("Time to load and hash DCE sequences: {:?}", duration);
@@ -68,7 +64,7 @@ fn main() {
     let rna_start = Instant::now();
 
     let mut rna_loader = fasta_read::SeqLoader::from_path(Path::new(&_rna_file));
-    let mut search = Search::new(&needles_hash);
+    let mut search = Search::new(needles);
     let mut search_results = Vec::<SearchResult>::new();
     _writer
         .write_fmt(format_args!("dce index, rna identifier, offset\n"))
