@@ -3,7 +3,7 @@
 /// to be extremely lightweight to improve performance.
 #[derive(Clone)]
 pub struct Hashmap {
-    pub(crate) container: Vec<u64>,
+    container: Vec<u64>,
     pub(crate) dce_id: Vec<String>,
     capacity: u64,
 }

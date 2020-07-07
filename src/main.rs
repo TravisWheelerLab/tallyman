@@ -87,28 +87,11 @@ fn main() {
     let duration = rna_start.elapsed();
     println!("Time to search RNA sequences: {:?}", duration);
 
-/*    for i in 0..30592 {
-        if mapping.dce_id[i] != 0.to_string(){
-            println!("DCE: {}", mapping.dce_id[i]);
-            let index = mapping.get_index(mapping.container[i]);
-            println!("Current index: {}", index);
-            let count = search.needles.hits[index];
-            println!("Current count: {}", count);
-            if count != 0 {
-                println!("{} hits: {}", mapping.dce_id[index], count);
-            }
-        }
-    }*/
-
-    search.needles.print_hits_all();
+    //search.needles.print_hits_all();
 
     for i in 0..search.needles.hits.len() {
         if search.needles.container[i] != 0 {
-            //println!("DCE: {}", mapping.dce_id[i]);
-            //let index = mapping.get_index(mapping.container[i]);
-            //println!("Current index: {}", i);
             let count = search.needles.hits[i];
-            //println!("Current count: {}", count);
             if count != 0 {
                 println!("{} hits: {}", mapping.dce_id[i], count);
             }
