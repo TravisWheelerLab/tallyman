@@ -2,23 +2,23 @@
 /// linear probing to handle collisions. This is intended
 /// to be extremely lightweight to improve performance.
 #[derive(Clone)]
-pub struct Hash {
+pub struct Hashmap {
     pub(crate) container: Vec<u64>,
-    pub(crate) hits: Vec<u16>,
+    pub(crate) dce_id: Vec<String>,
     capacity: u64,
 }
 
-impl Hash {
-    pub fn new(capacity: usize) -> Hash {
-        Hash {
+impl Hashmap {
+    pub fn new(capacity: usize) -> Hashmap {
+        Hashmap {
             container: vec![0; capacity],
-            hits: vec![0; capacity],
+            dce_id: vec![0.to_string(); capacity],
             capacity: capacity as u64,
         }
     }
 
     /// Add the given value to the set.
-    pub fn add(&mut self, value: u64) {
+    pub fn add(&mut self, value: u64, id: String) {
         let hv = value % self.capacity;
 
         // We may now cast hv to a usize because we're sure
@@ -40,6 +40,7 @@ impl Hash {
         }
 
         self.container[probed_index] = value;
+        self.dce_id[probed_index] = id;
     }
 
     /// Return the position in the insertion order for the
@@ -100,109 +101,47 @@ impl Hash {
     }
 
 
-    pub fn inc_hits(&mut self, value: u64) {
-        let hv = value % self.capacity;
-        let hv_index = hv as usize;
-        let mut probed_index = hv_index;
-
-        if self.container[probed_index] == value{
-            self.hits[probed_index] += 1;
-        }
-
-        else{
-            // Linear probing
-            while self.container[probed_index] != 0 {
-                probed_index += 1;
-
-                if probed_index >= self.capacity as usize {
-                    probed_index = 0;
-                }
-                //If we are at an index that matches the DCE we're looking
-                //for, then increment the hits array at that index and stop
-                if self.container[probed_index] == value{
-                    self.hits[probed_index] += 1;
-                    break;
-                }
-            }
-        }
-    }
-
-    pub fn print_hits_all(&mut self) {
-        for i in 0..self.hits.len() {
-            if self.hits[i] != 0{
-                println!("Count is {}", self.hits[i]);
-            }
-        }
-/*        for count in &self.hits {
-            println!("Count is {}", *count);
-            if *count != 0 {
-                println!("{}", *count);
-            }
-        }*/
-    }
-
-    pub fn print_hit(&mut self, value: u64) {
-        let hv = value % self.capacity;
-        let hv_index = hv as usize;
-        let mut probed_index = hv_index;
-
-        // Linear probing
-        while self.container[probed_index] != 0 {
-            probed_index += 1;
-
-            if probed_index >= self.capacity as usize {
-                probed_index = 0;
-            }
-
-            //If we are at an index that matches the DCE we're looking
-            //for, then increment the hits array at that index and stop
-            if self.container[probed_index] == value {
-                println!("Hits for {} are: ", value);
-                println!("{}", self.hits[probed_index]);
-                probed_index = 0;
-            }
-        }
-    }
-
 }
 
 #[cfg(test)]
 mod test {
-    use crate::hash::Hash;
+    use crate::hashmap::Hashmap;
 
     #[test]
     fn test_create_hash() {
-        let hash = Hash::new(10);
-        assert_eq!(hash.capacity, 10);
-        assert_eq!(hash.container.len(), 10);
+        let hashmap = Hashmap::new(10);
+        assert_eq!(hashmap.capacity, 10);
+        assert_eq!(hashmap.container.len(), 10);
         for i in 0..10 {
-            assert_eq!(hash.container[i], 0);
+            assert_eq!(hashmap.container[i], 0);
         }
     }
 
     #[test]
     fn test_add_to_hash() {
-        let mut hash = Hash::new(10);
-        hash.add(10);
-        hash.add(11);
+        let mut hashmap = Hash::new(10);
+        hashmap.add(10, "Test1");
+        hashmap.add(11, "Test2");
 
-        assert_eq!(hash.container[0], 10);
-        assert_eq!(hash.container[1], 11);
+        assert_eq!(hashmap.container[0], 10);
+        assert_eq!(hashmap.dce_id[0], "Test1");
+        assert_eq!(hashmap.container[1], 11);
+        assert_eq!(hashmap.dce_id[1], "Test2");
     }
 
     #[test]
     fn test_contains_value() {
-        let mut hash = Hash::new(10);
-        hash.container[0] = 10;
-        hash.container[2] = 12;
+        let mut hashmap = Hash::new(10);
+        hashmap.container[0] = 10;
+        hashmap.container[2] = 12;
         // Collision that had to probe
-        hash.container[3] = 2;
+        hashmap.container[3] = 2;
 
-        assert_eq!(hash.contains(10), true);
-        assert_eq!(hash.contains(12), true);
-        assert_eq!(hash.contains(2), true);
+        assert_eq!(hashmap.contains(10), true);
+        assert_eq!(hashmap.contains(12), true);
+        assert_eq!(hashmap.contains(2), true);
 
-        assert_eq!(hash.contains(1), false);
-        assert_eq!(hash.contains(11), false);
+        assert_eq!(hashmap.contains(1), false);
+        assert_eq!(hashmap.contains(11), false);
     }
 }

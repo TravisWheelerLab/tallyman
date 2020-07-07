@@ -8,7 +8,7 @@ pub struct SearchResult {
     pub haystack: String,
     pub needle: u64,
     pub offset: usize,
-    pub hit_index: usize,
+    pub index: usize,
 }
 
 pub struct Search {
@@ -81,23 +81,35 @@ impl Search {
             // the needle sequences and return the first match we fine.
             if self.needles.contains(self.haystack_window){
                 self.needles.inc_hits(self.haystack_window);
+                //self.needles.print_hit(self.haystack_window);
+                //let mut index = self.needles.get_index(self.haystack_window);
+                /*if self.haystack_window == 9390931131339475691 {
+                    println!("This is 4-S-l");
+                    self.needles.print_hit(self.haystack_window);
+                }*/
                 let result = SearchResult {
                     // TODO: Can we get rid of this clone? Prolly not
                     haystack: haystack.identifier.clone(),
                     needle: self.haystack_window,
                     offset: self.haystack_index - 32,
-                    hit_index: self.needles.get_index(self.haystack_window),
+                    index: self.needles.get_index(self.haystack_window),
                 };
                 results.push(result);
             }
             if self.needles.contains(self.rev_haystack ) {
                 self.needles.inc_hits(self.rev_haystack);
+                //self.needles.print_hit(self.rev_haystack);
+                //let mut index = self.needles.get_index(self.rev_haystack);
+                /*if self.rev_haystack == 9390931131339475691 {
+                    println!("This is 4-S-l");
+                    self.needles.print_hit(self.rev_haystack);
+                }*/
                 let result = SearchResult {
                     // TODO: Can we get rid of this clone? Prolly not
                     haystack: haystack.identifier.clone(),
                     needle: self.rev_haystack,
                     offset: self.haystack_index - 32,
-                    hit_index: self.needles.get_index(self.rev_haystack),
+                    index: self.needles.get_index(self.rev_haystack)
                 };
                 results.push(result);
             }

@@ -9,12 +9,14 @@ use crate::fasta_read::SeqLoader;
 use crate::search::{Search, SearchResult};
 use crate::sequence::Seq;
 use crate::hash::Hash;
+use crate::hashmap::Hashmap;
 use crate::constants::HASH_CAPACITY_MULTIPLE;
 
 pub mod alphabet;
 pub mod compress;
 pub mod constants;
 pub mod fasta_read;
+pub mod hashmap;
 pub mod hash;
 pub mod search;
 pub mod sequence;
@@ -39,6 +41,7 @@ fn main() {
 
     // Create reusable FASTA reading machinery
     let mut sequence = Seq::new();
+    let mut mapping = Hashmap::new(30592);
 
     // Load the DCE sequences and pre-compress them
     let dce_start = Instant::now();
@@ -48,9 +51,8 @@ fn main() {
     while dce_loader.next_seq(&mut sequence) {
         let compressed_seq = compress_chars(sequence.characters, sequence.length);
         needles.push(compressed_seq);
+        mapping.add(compressed_seq, sequence.identifier.clone());
     }
-
-    let mut hits = vec![0; needles.len() * HASH_CAPACITY_MULTIPLE];
 
     let duration = dce_start.elapsed();
     println!("Time to load and hash DCE sequences: {:?}", duration);
@@ -73,7 +75,6 @@ fn main() {
         search_results.clear();
         search.search(&sequence, &mut search_results);
         for result in &search_results {
-            hits[result.hit_index] += 1;
             _writer
                 .write_fmt(format_args!(
                     "{}, {}, {}\n",
@@ -86,13 +87,32 @@ fn main() {
     let duration = rna_start.elapsed();
     println!("Time to search RNA sequences: {:?}", duration);
 
-    search.print_hits();
-
-    // Report result summary
-/*    println!("dce index, count");
-    for (index, count) in hits.iter().enumerate() {
-        if *count != 0 {
-            println!("{},{}", index, count);
+/*    for i in 0..30592 {
+        if mapping.dce_id[i] != 0.to_string(){
+            println!("DCE: {}", mapping.dce_id[i]);
+            let index = mapping.get_index(mapping.container[i]);
+            println!("Current index: {}", index);
+            let count = search.needles.hits[index];
+            println!("Current count: {}", count);
+            if count != 0 {
+                println!("{} hits: {}", mapping.dce_id[index], count);
+            }
         }
     }*/
+
+    search.needles.print_hits_all();
+
+    for i in 0..search.needles.hits.len() {
+        if search.needles.container[i] != 0 {
+            //println!("DCE: {}", mapping.dce_id[i]);
+            //let index = mapping.get_index(mapping.container[i]);
+            //println!("Current index: {}", i);
+            let count = search.needles.hits[i];
+            //println!("Current count: {}", count);
+            if count != 0 {
+                println!("{} hits: {}", mapping.dce_id[i], count);
+            }
+        }
+    }
+
 }
