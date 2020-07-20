@@ -4,7 +4,7 @@
 #[derive(Clone)]
 pub struct Hashmap {
     container: Vec<u64>,
-    pub(crate) dce_id: Vec<String>,
+    pub(crate) dce_id: Vec<Vec<String>>,
     capacity: u64,
 }
 
@@ -12,7 +12,7 @@ impl Hashmap {
     pub fn new(capacity: usize) -> Hashmap {
         Hashmap {
             container: vec![0; capacity],
-            dce_id: vec![0.to_string(); capacity],
+            dce_id: vec![vec![0.to_string(); 1]; capacity],
             capacity: capacity as u64,
         }
     }
