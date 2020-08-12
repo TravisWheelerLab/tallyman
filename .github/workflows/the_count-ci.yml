@@ -1,0 +1,26 @@
+name: The Count CI
+
+on: [push, pull_request]
+
+jobs:
+  check-fast:
+    runs-on: ubuntu-18.04
+    container:
+      image: traviswheelerlab/the_count-build
+      volumes:
+        - ${{ github.workspace }}:/code
+    steps:
+      - uses: actions/checkout@v1
+      - run: poetry install
+      - run: poetry run pytest .
+
+  check-format:
+    runs-on: ubuntu-18.04
+    container:
+      image: traviswheelerlab/the_count-build
+      volumes:
+        - ${{ github.workspace }}:/code
+    steps:
+      - uses: actions/checkout@v1
+      - run: poetry install
+      - run: poetry run black --check .

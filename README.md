@@ -1,27 +1,41 @@
 ![Our mascot](character.png)
 
+![The Count CI](https://github.com/TravisWheelerLab/the_count/workflows/The%20Count%20CI/badge.svg)
+
 # The Count
 
-A tool for counting K-mer occurrences in a DNA or RNA sequence.
+A tool for counting exact K-mer occurrences in a DNA or RNA sequence very, very
+quickly.
 
 ## Command Line Interface
 
-## The Algorithms
+`the_count <haystack> <needles> <output>` where the haystack is a FASTA file
+that contains sequences to be searched and the needles are a FASTA file that
+contains 32-mers to be searched for.
 
-## Contributing
+## Developer Tooling
 
-This project uses [Poetry](https://python-poetry.org), see its
-web site for installation instructions. Poetry handles creating
-a virtual environment and fetching dependencies. See the commands
-below:
+The Count is implemented in the Rust programming language and supports Rust 1.43
+and later. Tooling instructions are below. They assume you already have the Rust
+toolchain installed. To do this, see <https://rustup.rs>.
 
-  - Fetch dependencies: `poetry update`
-  - Run a command in the virtual environment: `poetry run <your command>`
-  - Launch a shell inside the virtual environment: `poetry shell`
+  - Run unit tests: `cargo test`
+  - Run the demo: `cargo run`
+  - Create a release build (faster): `cargo build --release`,
+    the binary will end up in `target/release/`
+  - Format the code (do this before pushing): `cargo fmt`
+
+To run the benchmarks, you will need to install
+[hyperfine](https://github.com/sharkdp/hyperfine). On a Mac this can be done
+through Homebrew using `brew install hyperfine`. You can also use the
+`setup-mac` make target: `make setup-mac`.
+
+Benchmarks may then be run with `make benchmark`. The default benchmark searches a
+file with 1 million auto-generated sequences for 999 auto-generated 32-mers.
 
 ## Authors
 
-
-## Benchmarking
-Email Sarah for access to file for benchmarking
+  - Sarah Walling <sarah.walling@umontana.edu>
+  - Travis Wheeler <travis.wheeler@umontana.edu>
+  - George Lesica <george.lesica@umontana.edu>
 
