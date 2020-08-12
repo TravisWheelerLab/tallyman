@@ -3,4 +3,12 @@ __pycache__
 .DS_Store
 .~
 *.pyc
+data/
+cachegrind.out*
+
+
+#Added by cargo
+
+/target
 .idea/
+/venv/

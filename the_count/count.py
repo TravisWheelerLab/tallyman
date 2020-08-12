@@ -8,11 +8,11 @@ if __name__ == "__main__":
         description="Count number of exact matches of short sequences in RNAseq data"
     )
     parser.add_argument("--DNA", default="fixtures/DCEs.fasta")
-    parser.add_argument("--RNA", default="fixtures/RNAseqs.fasta")
+    parser.add_argument("--RNA", default="fixtures/RNAs.fasta")
     args = parser.parse_args()
 
     # filename = 'fixtures/DCEs.fasta'
-    # RNAfile = 'fixtures/RNAseqs.fasta'
+    # RNAfile = 'fixtures/RNAs.fasta'
     with open(args.DNA, "r") as dna_file:
         n = sequence_count(dna_file)
     p = 0.05  # false positive probability

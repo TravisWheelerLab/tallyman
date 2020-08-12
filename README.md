@@ -4,30 +4,38 @@
 
 # The Count
 
-A tool for counting K-mer occurrences in a DNA or RNA sequence.
+A tool for counting exact K-mer occurrences in a DNA or RNA sequence very, very
+quickly.
 
-## The Command Line Interface
+## Command Line Interface
 
-## The Algorithms
+`the_count <haystack> <needles> <output>` where the haystack is a FASTA file
+that contains sequences to be searched and the needles are a FASTA file that
+contains 32-mers to be searched for.
 
-## The Developer Tooling
+## Developer Tooling
 
-This project uses [Poetry](https://python-poetry.org), see its
-web site for installation instructions. Poetry handles creating
-a virtual environment and fetching dependencies. Note that after
-installation you may need to add `"$HOME/.poetry/bin"` to your
-`PATH` environment variable.
+The Count is implemented in the Rust programming language and supports Rust 1.43
+and later. Tooling instructions are below. They assume you already have the Rust
+toolchain installed. To do this, see <https://rustup.rs>.
 
-Some basic Poetry commands are listed below:
+  - Run unit tests: `cargo test`
+  - Run the demo: `cargo run`
+  - Create a release build (faster): `cargo build --release`,
+    the binary will end up in `target/release/`
+  - Format the code (do this before pushing): `cargo fmt`
 
-  - Fetch dependencies: `poetry update`
-  - Launch a shell inside the virtual environment: `poetry shell`
-  - Run a command in the virtual environment: `poetry run <your command>`
-      - Run unit tests: `poetry run pytest .`
-      - Format the code: `poetry run black .`
+To run the benchmarks, you will need to install
+[hyperfine](https://github.com/sharkdp/hyperfine). On a Mac this can be done
+through Homebrew using `brew install hyperfine`. You can also use the
+`setup-mac` make target: `make setup-mac`.
 
-## The Authors
+Benchmarks may then be run with `make benchmark`. The default benchmark searches a
+file with 1 million auto-generated sequences for 999 auto-generated 32-mers.
+
+## Authors
 
   - Sarah Walling <sarah.walling@umontana.edu>
   - Travis Wheeler <travis.wheeler@umontana.edu>
   - George Lesica <george.lesica@umontana.edu>
+
