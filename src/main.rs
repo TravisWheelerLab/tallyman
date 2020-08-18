@@ -89,11 +89,15 @@ fn main() {
 
     //search.needles.print_hits_all();
 
+
     for i in 0..search.needles.hits.len() {
         if search.needles.container[i] != 0 {
             let count = search.needles.hits[i];
             if count != 0 {
-                println!("{} hits: {}", mapping.dce_id[i], count);
+                for j in &mapping.dce_id[i] {
+                    println!("{} hits: {}", j, count);
+                }
+                //println!("{} hits: {}", mapping.dce_id[i], count);
             }
         }
     }

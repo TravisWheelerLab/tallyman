@@ -26,21 +26,51 @@ impl Hashmap {
         let hv_index = hv as usize;
         let mut probed_index = hv_index;
 
-        // Find the next empty slot (this is the linear probing bit).
-        while self.container[probed_index] != 0 {
-            probed_index += 1;
-
-            if probed_index >= self.capacity as usize {
-                probed_index = 0;
-            }
-
-            if probed_index == hv_index {
-                panic!("hash full");
-            }
+        //if this is a duplicate that already has an existing ID inserted,
+        //we don't want to probe past it due to the index already being "occupied"
+        if self.container[probed_index] == value {
+            //if self.dce_id[probed_index][0] != 0.to_string() {
+            self.dce_id[probed_index].push(id);
+           // }
+            //else{
+            //    self.dce_id[probed_index][0] = id;
+            //}
         }
 
-        self.container[probed_index] = value;
-        self.dce_id[probed_index] = id;
+        //If the sequence value isn't in container at the computed index, it is either:
+        // a) not inserted yet or b) had a collision and is in another index
+        else{
+            while self.container[probed_index] != 0 { //start probing as normal for a new insertion
+                probed_index += 1;
+                //But check here to see if the move puts us at the right seq value in container,
+                //even though we haven't yet encountered an empty index
+                if self.container[probed_index] == value {
+                    //push it onto the id vector because it can't be a new insertion now
+                    self.dce_id[probed_index].push(id.clone());
+                    self.container[probed_index] = value;
+                    break;
+                }
+
+                //If we get here, it is a new insertion. Proceed as "normal".
+                if probed_index >= self.capacity as usize {
+                    probed_index = 0;
+                }
+
+                if probed_index == hv_index {
+                    panic!("hash full");
+                }
+            }
+            self.container[probed_index] = value;
+            self.dce_id[probed_index][0] = id.clone();
+        }
+
+        /*self.container[probed_index] = value;
+        if self.dce_id[probed_index][0] != 0.to_string() {
+            self.dce_id[probed_index].push(id);
+        }
+        else{
+            self.dce_id[probed_index][0] = id;
+        }*/
     }
 
     /// Return the position in the insertion order for the
