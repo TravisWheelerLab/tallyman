@@ -93,7 +93,7 @@ impl<T: BufRead> SeqLoader<T> {
             // future we may want to be clearer about the error.
             return false;
         }
-
+        //TODO: Change starts here, fastq seq identifier starts with @ symbol, not >
         if self.line_buffer[0] as char != '>' {
             // We expected to find an identifier
             // here, but we didn't. Therefore we bail.
@@ -103,6 +103,21 @@ impl<T: BufRead> SeqLoader<T> {
         for i in 1..self.line_length {
             seq.identifier.push(self.line_buffer[i] as char);
         }
+
+/*        TODO: Then we'll need to check here (maybe?) for the next part of fastq files:
+        A line of + (which may or may not have the seq identifier again following it)
+        And then 1+ lines of the quality scores
+        Example fastq entry:
+        @071112_SLXA-EAS1_s_7:5:1:817:345
+        GGGTGATGGCCGCTGCCGATGGCGTC
+        AAATCCCACC
+            +
+            IIIIIIIIIIIIIIIIIIIIIIIIII
+        IIII9IG9IC
+        @071112_SLXA-EAS1_s_7:5:1:801:338
+        GTTCAGGGATACGACGTTTGTATTTTAAGAATCTGA
+            +
+            IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII6IBI*/
 
         let mut sequence_length = 0;
 
