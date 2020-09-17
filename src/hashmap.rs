@@ -3,9 +3,10 @@
 /// to be extremely lightweight to improve performance.
 #[derive(Clone)]
 pub struct Hashmap {
-    container: Vec<u64>,
+    pub container: Vec<u64>,
     pub(crate) dce_id: Vec<Vec<String>>,
     capacity: u64,
+    pub index: usize,
 }
 
 impl Hashmap {
@@ -14,10 +15,11 @@ impl Hashmap {
             container: vec![0; capacity],
             dce_id: vec![vec![0.to_string(); 1]; capacity],
             capacity: capacity as u64,
+            index: 0,
         }
     }
 
-    /// Add the given value to the set.
+    // Add the given value to the set.
     pub fn add(&mut self, value: u64, id: String) {
         let hv = value % self.capacity;
 
@@ -29,12 +31,8 @@ impl Hashmap {
         //if this is a duplicate that already has an existing ID inserted,
         //we don't want to probe past it due to the index already being "occupied"
         if self.container[probed_index] == value {
-            //if self.dce_id[probed_index][0] != 0.to_string() {
             self.dce_id[probed_index].push(id);
-           // }
-            //else{
-            //    self.dce_id[probed_index][0] = id;
-            //}
+            self.index = probed_index;
         }
 
         //If the sequence value isn't in container at the computed index, it is either:
@@ -48,6 +46,7 @@ impl Hashmap {
                     //push it onto the id vector because it can't be a new insertion now
                     self.dce_id[probed_index].push(id.clone());
                     self.container[probed_index] = value;
+                    self.index = probed_index;
                     break;
                 }
 
@@ -62,6 +61,7 @@ impl Hashmap {
             }
             self.container[probed_index] = value;
             self.dce_id[probed_index][0] = id.clone();
+            self.index = probed_index;
         }
 
         /*self.container[probed_index] = value;

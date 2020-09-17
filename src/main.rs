@@ -52,6 +52,8 @@ fn main() {
         let compressed_seq = compress_chars(sequence.characters, sequence.length);
         needles.push(compressed_seq);
         mapping.add(compressed_seq, sequence.identifier.clone());
+        println!("Seq ID: {:?}", sequence.identifier.clone());
+        println!("{:?}", compressed_seq);
     }
 
     let duration = dce_start.elapsed();
@@ -77,8 +79,8 @@ fn main() {
         for result in &search_results {
             _writer
                 .write_fmt(format_args!(
-                    "{}, {}, {}\n",
-                    result.needle, result.haystack, result.offset
+                    "{}, {}, {}, {}\n",
+                    result.needle, result.haystack, result.offset, result.index
                 ))
                 .unwrap();
         }
@@ -87,8 +89,6 @@ fn main() {
     let duration = rna_start.elapsed();
     println!("Time to search RNA sequences: {:?}", duration);
 
-    //search.needles.print_hits_all();
-
 
     for i in 0..search.needles.hits.len() {
         if search.needles.container[i] != 0 {
@@ -96,8 +96,9 @@ fn main() {
             if count != 0 {
                 for j in &mapping.dce_id[i] {
                     println!("{} hits: {}", j, count);
+                    //TODO: This is having issues with immutable vs mutable borrowing of the mapping
+                    //println!("{}, index {}: {} hits", j, &mapping.get_index(mapping.container[i]), count,);
                 }
-                //println!("{} hits: {}", mapping.dce_id[i], count);
             }
         }
     }
