@@ -104,20 +104,20 @@ impl<T: BufRead> SeqLoader<T> {
             seq.identifier.push(self.line_buffer[i] as char);
         }
 
-        /*        TODO: Then we'll need to check here (maybe?) for the next part of fastq files:
-                A line of + (which may or may not have the seq identifier again following it)
-                And then 1+ lines of the quality scores
-                Example fastq entry:
-                @071112_SLXA-EAS1_s_7:5:1:817:345
-                GGGTGATGGCCGCTGCCGATGGCGTC
-                AAATCCCACC
-                    +
-                    IIIIIIIIIIIIIIIIIIIIIIIIII
-                IIII9IG9IC
-                @071112_SLXA-EAS1_s_7:5:1:801:338
-                GTTCAGGGATACGACGTTTGTATTTTAAGAATCTGA
-                    +
-                    IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII6IBI*/
+/*        TODO: Then we'll need to check here (maybe?) for the next part of fastq files:
+        A line of + (which may or may not have the seq identifier again following it)
+        And then 1+ lines of the quality scores
+        Example fastq entry:
+        @071112_SLXA-EAS1_s_7:5:1:817:345
+        GGGTGATGGCCGCTGCCGATGGCGTC
+        AAATCCCACC
+            +
+            IIIIIIIIIIIIIIIIIIIIIIIIII
+        IIII9IG9IC
+        @071112_SLXA-EAS1_s_7:5:1:801:338
+        GTTCAGGGATACGACGTTTGTATTTTAAGAATCTGA
+            +
+            IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII6IBI*/
 
         let mut sequence_length = 0;
 
