@@ -120,11 +120,11 @@ mod test {
     fn test_min_size_search() {
         let haystack = Seq::pre_filled("id", "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG");
         let needles = vec![
-            compress_seq("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"),
+            compress_seq("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"),
             compress_seq("GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG"),
         ];
         let mut results = Vec::<SearchResult>::new();
-        let mut search = Search::new(needles_hash);
+        let mut search = Search::new(needles);
         search.search(&haystack, &mut results);
 
         assert_eq!(results.len(), 1);
@@ -141,7 +141,7 @@ mod test {
             compress_seq("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"),
         ];
         let mut results = Vec::<SearchResult>::new();
-        let mut search = Search::new(needles_hash);
+        let mut search = Search::new(needles);
         search.search(&haystack, &mut results);
 
         assert_eq!(results.len(), 1);
