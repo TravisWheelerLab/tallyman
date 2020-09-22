@@ -76,12 +76,12 @@ impl Hash {
         let mut probed_index = hv_index;
 
         // return if it's in the index calculated
-        if self.container[probed_index] == value{
+        if self.container[probed_index] == value {
             return probed_index;
         }
         //otherwise we need to linear probe until
         //the DCE is found at subsequent indices
-        else{
+        else {
             while self.container[probed_index] != 0 {
                 //loop to increment index, looking for the
                 //index that actually contains the given DCE
@@ -91,7 +91,7 @@ impl Hash {
                     probed_index = 0;
                 }
 
-                if self.container[probed_index] == value{
+                if self.container[probed_index] == value {
                     return probed_index;
                 }
             }
@@ -99,17 +99,14 @@ impl Hash {
         return probed_index;
     }
 
-
     pub fn inc_hits(&mut self, value: u64) {
         let hv = value % self.capacity;
         let hv_index = hv as usize;
         let mut probed_index = hv_index;
 
-        if self.container[probed_index] == value{
+        if self.container[probed_index] == value {
             self.hits[probed_index] += 1;
-        }
-
-        else{
+        } else {
             // Linear probing
             while self.container[probed_index] != 0 {
                 probed_index += 1;
@@ -119,7 +116,7 @@ impl Hash {
                 }
                 //If we are at an index that matches the DCE we're looking
                 //for, then increment the hits array at that index and stop
-                if self.container[probed_index] == value{
+                if self.container[probed_index] == value {
                     self.hits[probed_index] += 1;
                     break;
                 }
@@ -129,11 +126,11 @@ impl Hash {
 
     pub fn print_hits_all(&mut self) {
         for i in 0..self.hits.len() {
-            if self.hits[i] != 0{
+            if self.hits[i] != 0 {
                 println!("Count is {}", self.hits[i]);
             }
         }
-/*        for count in &self.hits {
+        /*        for count in &self.hits {
             println!("Count is {}", *count);
             if *count != 0 {
                 println!("{}", *count);
@@ -163,7 +160,6 @@ impl Hash {
             }
         }
     }
-
 }
 
 #[cfg(test)]

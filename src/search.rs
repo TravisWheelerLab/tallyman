@@ -69,7 +69,7 @@ impl Search {
 
                 self.haystack_window = (self.haystack_window << 2) | mask;
                 let new_mask = !mask;
-                self.rev_haystack = (self.rev_haystack >> 2) | (new_mask<<62);
+                self.rev_haystack = (self.rev_haystack >> 2) | (new_mask << 62);
                 self.haystack_index += 1;
             }
 
@@ -79,7 +79,7 @@ impl Search {
 
             // Compare the current haystack sequence against each of
             // the needle sequences and return the first match we find.
-            if self.needles.contains(self.haystack_window){
+            if self.needles.contains(self.haystack_window) {
                 self.needles.inc_hits(self.haystack_window);
                 let result = SearchResult {
                     // TODO: Can we get rid of this clone? Prolly not
@@ -90,14 +90,14 @@ impl Search {
                 };
                 results.push(result);
             }
-            if self.needles.contains(self.rev_haystack ) {
+            if self.needles.contains(self.rev_haystack) {
                 self.needles.inc_hits(self.rev_haystack);
                 let result = SearchResult {
                     // TODO: Can we get rid of this clone? Prolly not
                     haystack: haystack.identifier.clone(),
                     needle: self.rev_haystack,
                     offset: self.haystack_index - 32,
-                    index: self.needles.get_index(self.rev_haystack)
+                    index: self.needles.get_index(self.rev_haystack),
                 };
                 results.push(result);
             }
@@ -108,7 +108,6 @@ impl Search {
         self.needles.print_hits_all();
     }
 }
-
 
 #[cfg(test)]
 mod test {
