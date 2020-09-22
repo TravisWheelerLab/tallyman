@@ -2,7 +2,6 @@ use crate::alphabet::encode_char;
 use crate::constants::HASH_CAPACITY_MULTIPLE;
 use crate::hash::Hash;
 use crate::sequence::Seq;
-use std::ops::DerefMut;
 
 pub struct SearchResult {
     pub haystack: String,

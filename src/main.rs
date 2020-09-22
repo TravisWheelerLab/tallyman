@@ -5,9 +5,7 @@ use std::path::Path;
 use std::time::Instant;
 
 use crate::compress::compress_chars;
-use crate::constants::HASH_CAPACITY_MULTIPLE;
 use crate::fasta_read::SeqLoader;
-use crate::hash::Hash;
 use crate::hashmap::Hashmap;
 use crate::search::{Search, SearchResult};
 use crate::sequence::Seq;
