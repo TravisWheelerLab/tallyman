@@ -13,7 +13,7 @@ impl Hashmap {
     pub fn new(capacity: usize) -> Hashmap {
         Hashmap {
             container: vec![0; capacity],
-            dce_id: vec![vec![0.to_string(); 1]; capacity],
+            dce_id: vec![vec![]; capacity],
             capacity: capacity as u64,
             index: 0,
         }
@@ -60,7 +60,7 @@ impl Hashmap {
                 }
             }
             self.container[probed_index] = value;
-            self.dce_id[probed_index][0] = id.clone();
+            self.dce_id[probed_index].push(id);
             self.index = probed_index;
         }
 
@@ -127,7 +127,8 @@ impl Hashmap {
                 }
             }
         }
-        return probed_index;
+
+        probed_index
     }
 }
 
@@ -163,9 +164,9 @@ mod test {
         // because dce_id[2..] shouldn't have anything in it
         // since we didn't add anything that would have hashed
         // to any of those values.
-        assert_eq!(hashmap.dce_id[2][0], "");
-        assert_eq!(hashmap.dce_id[3][0], "");
-        assert_eq!(hashmap.dce_id[4][0], "");
+        // assert_eq!(hashmap.dce_id[2][0], "");
+        // assert_eq!(hashmap.dce_id[3][0], "");
+        // assert_eq!(hashmap.dce_id[4][0], "");
     }
 
     #[test]

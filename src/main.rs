@@ -5,19 +5,19 @@ use std::path::Path;
 use std::time::Instant;
 
 use crate::compress::compress_chars;
+use crate::constants::HASH_CAPACITY_MULTIPLE;
 use crate::fasta_read::SeqLoader;
-use crate::search::{Search, SearchResult};
-use crate::sequence::Seq;
 use crate::hash::Hash;
 use crate::hashmap::Hashmap;
-use crate::constants::HASH_CAPACITY_MULTIPLE;
+use crate::search::{Search, SearchResult};
+use crate::sequence::Seq;
 
 pub mod alphabet;
 pub mod compress;
 pub mod constants;
 pub mod fasta_read;
-pub mod hashmap;
 pub mod hash;
+pub mod hashmap;
 pub mod search;
 pub mod sequence;
 
@@ -89,7 +89,6 @@ fn main() {
     let duration = rna_start.elapsed();
     println!("Time to search RNA sequences: {:?}", duration);
 
-
     for i in 0..search.needles.hits.len() {
         if search.needles.container[i] != 0 {
             let count = search.needles.hits[i];
@@ -102,5 +101,4 @@ fn main() {
             }
         }
     }
-
 }
