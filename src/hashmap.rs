@@ -34,11 +34,11 @@ impl Hashmap {
             self.dce_id[probed_index].push(id);
             self.index = probed_index;
         }
-
         //If the sequence value isn't in container at the computed index, it is either:
         // a) not inserted yet or b) had a collision and is in another index
-        else{
-            while self.container[probed_index] != 0 { //start probing as normal for a new insertion
+        else {
+            while self.container[probed_index] != 0 {
+                //start probing as normal for a new insertion
                 probed_index += 1;
                 //But check here to see if the move puts us at the right seq value in container,
                 //even though we haven't yet encountered an empty index
@@ -107,12 +107,12 @@ impl Hashmap {
         let mut probed_index = hv_index;
 
         // return if it's in the index calculated
-        if self.container[probed_index] == value{
+        if self.container[probed_index] == value {
             return probed_index;
         }
         //otherwise we need to linear probe until
         //the DCE is found at subsequent indices
-        else{
+        else {
             while self.container[probed_index] != 0 {
                 //loop to increment index, looking for the
                 //index that actually contains the given DCE
@@ -122,15 +122,13 @@ impl Hashmap {
                     probed_index = 0;
                 }
 
-                if self.container[probed_index] == value{
+                if self.container[probed_index] == value {
                     return probed_index;
                 }
             }
         }
         return probed_index;
     }
-
-
 }
 
 #[cfg(test)]
@@ -138,7 +136,7 @@ mod test {
     use crate::hashmap::Hashmap;
 
     #[test]
-    fn test_create_hash() {
+    fn test_create_hashmap() {
         let hashmap = Hashmap::new(10);
         assert_eq!(hashmap.capacity, 10);
         assert_eq!(hashmap.container.len(), 10);
@@ -147,26 +145,35 @@ mod test {
         }
     }
 
-    //TODO: This test needs some serious work to account for the non-unique sequence ID changes
-    /*#[test]
-    fn test_add_to_hash() {
+    #[test]
+    fn test_add_to_hashmap() {
         let mut hashmap = Hashmap::new(10);
-        hashmap.add(10, "Test1".parse().unwrap());
-        hashmap.add(11, "Test2".parse().unwrap());
+        hashmap.add(10, "Test1".to_string());
+        hashmap.add(10, "Test2".to_string());
+        hashmap.add(20, "Test3".to_string());
 
         assert_eq!(hashmap.container[0], 10);
-        assert_eq!(hashmap.dce_id[0], "Test1");
-        assert_eq!(hashmap.container[1], 11);
-        assert_eq!(hashmap.dce_id[1], "Test2");
-    }*/
+        assert_eq!(hashmap.dce_id[0][0], "Test1");
+        assert_eq!(hashmap.container[0], 10);
+        assert_eq!(hashmap.dce_id[0][1], "Test2");
+        assert_eq!(hashmap.container[1], 20);
+        assert_eq!(hashmap.dce_id[1][0], "Test3");
+        assert_eq!(hashmap.container[2], 0);
+        // These three fail, but they should crash, not fail,
+        // because dce_id[2..] shouldn't have anything in it
+        // since we didn't add anything that would have hashed
+        // to any of those values.
+        assert_eq!(hashmap.dce_id[2][0], "");
+        assert_eq!(hashmap.dce_id[3][0], "");
+        assert_eq!(hashmap.dce_id[4][0], "");
+    }
 
     #[test]
     fn test_contains_value() {
         let mut hashmap = Hashmap::new(10);
         hashmap.container[0] = 10;
         hashmap.container[2] = 12;
-        // Collision that had to probe
-        hashmap.container[3] = 2;
+        hashmap.container[3] = 2; // Collision that had to probe
 
         assert_eq!(hashmap.contains(10), true);
         assert_eq!(hashmap.contains(12), true);
