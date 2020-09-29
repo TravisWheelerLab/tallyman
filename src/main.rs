@@ -4,6 +4,8 @@ use std::io::{BufWriter, Write};
 use std::path::Path;
 use std::time::Instant;
 
+extern crate multimap;
+use multimap::MultiMap;
 use crate::compress::compress_chars;
 use crate::fasta_read::SeqLoader;
 use crate::search::{Search, SearchResult};
@@ -41,7 +43,8 @@ fn main() {
 
     // Create reusable FASTA reading machinery
     let mut sequence = Seq::new();
-    let mut mapping = Hashmap::new(30592);
+    let mut map = MultiMap::new();
+    //let mut mapping = Hashmap::new(30592);
 
     // Load the DCE sequences and pre-compress them
     let dce_start = Instant::now();
@@ -51,9 +54,9 @@ fn main() {
     while dce_loader.next_seq(&mut sequence) {
         let compressed_seq = compress_chars(sequence.characters, sequence.length);
         needles.push(compressed_seq);
-        mapping.add(compressed_seq, sequence.identifier.clone());
-        println!("Seq ID: {:?}", sequence.identifier.clone());
-        println!("{:?}", compressed_seq);
+        map.insert(compressed_seq, sequence.identifier.clone());
+        //println!("Seq ID: {:?}", sequence.identifier.clone());
+        //println!("{:?}", compressed_seq);
     }
 
     let duration = dce_start.elapsed();
@@ -71,19 +74,11 @@ fn main() {
     let mut search = Search::new(needles);
     let mut search_results = Vec::<SearchResult>::new();
     _writer
-        .write_fmt(format_args!("dce index, rna identifier, offset\n"))
+        .write_fmt(format_args!("File: {} \n", _rna_file))
         .unwrap();
     while rna_loader.next_seq(&mut sequence) {
         search_results.clear();
         search.search(&sequence, &mut search_results);
-        for result in &search_results {
-            _writer
-                .write_fmt(format_args!(
-                    "{}, {}, {}, {}\n",
-                    result.needle, result.haystack, result.offset, result.index
-                ))
-                .unwrap();
-        }
     }
 
     let duration = rna_start.elapsed();
@@ -92,12 +87,16 @@ fn main() {
 
     for i in 0..search.needles.hits.len() {
         if search.needles.container[i] != 0 {
+            //println!("search.needles.container[i] is {}", search.needles.container[i]);
             let count = search.needles.hits[i];
             if count != 0 {
-                for j in &mapping.dce_id[i] {
-                    println!("{} hits: {}", j, count);
-                    //TODO: This is having issues with immutable vs mutable borrowing of the mapping
-                    //println!("{}, index {}: {} hits", j, &mapping.get_index(mapping.container[i]), count,);
+                let names = map.get_vec(&search.needles.container[i]);
+                //println!("Names for sequence are {:?}", names);
+                for j in names {
+                    for i in j{
+                        //println!("{}   {}", i, count);
+                        _writer.write_fmt(format_args!("{}\t{}\n", i, count)).unwrap();
+                    }
                 }
             }
         }
