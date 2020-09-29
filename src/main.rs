@@ -11,14 +11,12 @@ use crate::fasta_read::SeqLoader;
 use crate::search::{Search, SearchResult};
 use crate::sequence::Seq;
 use crate::hash::Hash;
-use crate::hashmap::Hashmap;
 use crate::constants::HASH_CAPACITY_MULTIPLE;
 
 pub mod alphabet;
 pub mod compress;
 pub mod constants;
 pub mod fasta_read;
-pub mod hashmap;
 pub mod hash;
 pub mod search;
 pub mod sequence;
@@ -44,9 +42,8 @@ fn main() {
     // Create reusable FASTA reading machinery
     let mut sequence = Seq::new();
     let mut map = MultiMap::new();
-    //let mut mapping = Hashmap::new(30592);
 
-    // Load the DCE sequences and pre-compress them
+    // Load the DCE sequences and pre-compress them, and make the multimap for post-processing
     let dce_start = Instant::now();
 
     let mut needles = Vec::<u64>::new();
@@ -55,8 +52,6 @@ fn main() {
         let compressed_seq = compress_chars(sequence.characters, sequence.length);
         needles.push(compressed_seq);
         map.insert(compressed_seq, sequence.identifier.clone());
-        //println!("Seq ID: {:?}", sequence.identifier.clone());
-        //println!("{:?}", compressed_seq);
     }
 
     let duration = dce_start.elapsed();
@@ -87,11 +82,9 @@ fn main() {
 
     for i in 0..search.needles.hits.len() {
         if search.needles.container[i] != 0 {
-            //println!("search.needles.container[i] is {}", search.needles.container[i]);
             let count = search.needles.hits[i];
             if count != 0 {
                 let names = map.get_vec(&search.needles.container[i]);
-                //println!("Names for sequence are {:?}", names);
                 for j in names {
                     for i in j{
                         //println!("{}   {}", i, count);
@@ -101,5 +94,4 @@ fn main() {
             }
         }
     }
-
 }

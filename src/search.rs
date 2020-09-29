@@ -103,10 +103,6 @@ impl Search {
             }
         }
     }
-
-    pub fn print_hits(&mut self) {
-        self.needles.print_hits_all();
-    }
 }
 
 

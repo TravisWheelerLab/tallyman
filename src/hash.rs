@@ -126,44 +126,6 @@ impl Hash {
             }
         }
     }
-
-    pub fn print_hits_all(&mut self) {
-        for i in 0..self.hits.len() {
-            if self.hits[i] != 0{
-                println!("Count is {}", self.hits[i]);
-            }
-        }
-/*        for count in &self.hits {
-            println!("Count is {}", *count);
-            if *count != 0 {
-                println!("{}", *count);
-            }
-        }*/
-    }
-
-    pub fn print_hit(&mut self, value: u64) {
-        let hv = value % self.capacity;
-        let hv_index = hv as usize;
-        let mut probed_index = hv_index;
-
-        // Linear probing
-        while self.container[probed_index] != 0 {
-            probed_index += 1;
-
-            if probed_index >= self.capacity as usize {
-                probed_index = 0;
-            }
-
-            //If we are at an index that matches the DCE we're looking
-            //for, then increment the hits array at that index and stop
-            if self.container[probed_index] == value {
-                println!("Hits for {} are: ", value);
-                println!("{}", self.hits[probed_index]);
-                probed_index = 0;
-            }
-        }
-    }
-
 }
 
 #[cfg(test)]
