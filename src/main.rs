@@ -4,19 +4,19 @@ use std::io::{BufWriter, Write};
 use std::path::Path;
 use std::time::Instant;
 
+extern crate multimap;
+use multimap::MultiMap;
 use crate::compress::compress_chars;
 use crate::fasta_read::SeqLoader;
 use crate::search::{Search, SearchResult};
 use crate::sequence::Seq;
 use crate::hash::Hash;
-use crate::hashmap::Hashmap;
 use crate::constants::HASH_CAPACITY_MULTIPLE;
 
 pub mod alphabet;
 pub mod compress;
 pub mod constants;
 pub mod fasta_read;
-pub mod hashmap;
 pub mod hash;
 pub mod search;
 pub mod sequence;
@@ -41,9 +41,9 @@ fn main() {
 
     // Create reusable FASTA reading machinery
     let mut sequence = Seq::new();
-    let mut mapping = Hashmap::new(30592);
+    let mut map = MultiMap::new();
 
-    // Load the DCE sequences and pre-compress them
+    // Load the DCE sequences and pre-compress them, and make the multimap for post-processing
     let dce_start = Instant::now();
 
     let mut needles = Vec::<u64>::new();
@@ -51,7 +51,7 @@ fn main() {
     while dce_loader.next_seq(&mut sequence) {
         let compressed_seq = compress_chars(sequence.characters, sequence.length);
         needles.push(compressed_seq);
-        mapping.add(compressed_seq, sequence.identifier.clone());
+        map.insert(compressed_seq, sequence.identifier.clone());
     }
 
     let duration = dce_start.elapsed();
@@ -69,37 +69,29 @@ fn main() {
     let mut search = Search::new(needles);
     let mut search_results = Vec::<SearchResult>::new();
     _writer
-        .write_fmt(format_args!("dce index, rna identifier, offset\n"))
+        .write_fmt(format_args!("File: {} \n", _rna_file))
         .unwrap();
     while rna_loader.next_seq(&mut sequence) {
         search_results.clear();
         search.search(&sequence, &mut search_results);
-        for result in &search_results {
-            _writer
-                .write_fmt(format_args!(
-                    "{}, {}, {}\n",
-                    result.needle, result.haystack, result.offset
-                ))
-                .unwrap();
-        }
     }
 
     let duration = rna_start.elapsed();
     println!("Time to search RNA sequences: {:?}", duration);
-
-    //search.needles.print_hits_all();
 
 
     for i in 0..search.needles.hits.len() {
         if search.needles.container[i] != 0 {
             let count = search.needles.hits[i];
             if count != 0 {
-                for j in &mapping.dce_id[i] {
-                    println!("{} hits: {}", j, count);
+                let names = map.get_vec(&search.needles.container[i]);
+                for j in names {
+                    for i in j{
+                        //println!("{}   {}", i, count);
+                        _writer.write_fmt(format_args!("{}\t{}\n", i, count)).unwrap();
+                    }
                 }
-                //println!("{} hits: {}", mapping.dce_id[i], count);
             }
         }
     }
-
 }

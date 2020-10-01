@@ -78,7 +78,7 @@ impl Search {
             self.start_index += 1;
 
             // Compare the current haystack sequence against each of
-            // the needle sequences and return the first match we fine.
+            // the needle sequences and return the first match we find.
             if self.needles.contains(self.haystack_window){
                 self.needles.inc_hits(self.haystack_window);
                 let result = SearchResult {
@@ -102,10 +102,6 @@ impl Search {
                 results.push(result);
             }
         }
-    }
-
-    pub fn print_hits(&mut self) {
-        self.needles.print_hits_all();
     }
 }
 
