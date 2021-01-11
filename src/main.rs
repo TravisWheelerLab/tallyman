@@ -83,12 +83,17 @@ fn main() {
     for i in 0..search.needles.hits.len() {
         if search.needles.container[i] != 0 {
             let count = search.needles.hits[i];
+            let mut k = count;
             if count != 0 {
                 let names = map.get_vec(&search.needles.container[i]);
                 for j in names {
                     for i in j{
                         //println!("{}   {}", i, count);
-                        _writer.write_fmt(format_args!("{}\t{}\n", i, count)).unwrap();
+                        while(k > 0){
+                            _writer.write_fmt(format_args!(
+                                "{}\t0\tDCE\t0\t255\tM0\t*\t0\t*\0*\t*\n", i,)).unwrap();
+                                k = k-1;
+                        }
                     }
                 }
             }
