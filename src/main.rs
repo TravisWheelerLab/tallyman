@@ -68,9 +68,7 @@ fn main() {
     let mut rna_loader = fasta_read::SeqLoader::from_path(Path::new(&_rna_file));
     let mut search = Search::new(needles);
     let mut search_results = Vec::<SearchResult>::new();
-    _writer
-        .write_fmt(format_args!("File: {} \n", _rna_file))
-        .unwrap();
+
     while rna_loader.next_seq(&mut sequence) {
         search_results.clear();
         search.search(&sequence, &mut search_results);
@@ -79,6 +77,8 @@ fn main() {
     let duration = rna_start.elapsed();
     println!("Time to search RNA sequences: {:?}", duration);
 
+
+    _writer.write_fmt(format_args!("@HD: {}\n", _rna_file));
 
     for i in 0..search.needles.hits.len() {
         if search.needles.container[i] != 0 {
@@ -91,7 +91,7 @@ fn main() {
                         //println!("{}   {}", i, count);
                         while(k > 0){
                             _writer.write_fmt(format_args!(
-                                "{}\t0\tDCE\t0\t255\tM0\t*\t0\t*\0*\t*\n", i,)).unwrap();
+                                "{}\t0\tDCE\t0\t255\tM0\t*\t0\t*\t*\t*\n", i,)).unwrap();
                                 k = k-1;
                         }
                     }
