@@ -5,7 +5,7 @@
 # The Count
 
 A tool for counting exact K-mer occurrences in a DNA or RNA sequence very, very
-quickly.
+quickly (where K=32).
 
 ## Command Line Interface
 
