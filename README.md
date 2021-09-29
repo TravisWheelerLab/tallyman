@@ -13,6 +13,12 @@ quickly (where K=32).
 that contains sequences to be searched and the needles are a FASTA file that
 contains 32-mers to be searched for.
 
+A docker image is also provided:
+```
+docker pull traviswheelerlab/the_count
+docker run --mount type=bind,src=$PWD,dst=/data traviswheelerlab/the_count /data/test-rna.fasta /data/human.fa /data/out.out
+```
+
 ## Developer Tooling
 
 The Count is implemented in the Rust programming language and supports Rust 1.43
