@@ -18,10 +18,19 @@ pub fn compress_seq(seq: &str) -> CompressedSeq {
     }
 }
 
-pub fn compress_chars(chars: [char; BUFFER_SIZE], length: usize) -> CompressedSeq {
+//pub fn compress_chars(chars: [char; BUFFER_SIZE], length: usize) -> CompressedSeq {
+//    let mut sequence = 0u64;
+//    for i in 0..length {
+//        let mask = encode_char(chars[i]);
+//        sequence = (sequence << 2) | mask;
+//    }
+//    sequence
+//}
+
+pub fn compress_chars(chars: &[u8]) -> CompressedSeq {
     let mut sequence = 0u64;
-    for i in 0..length {
-        let mask = encode_char(chars[i]);
+    for i in 0..chars.len() {
+        let mask = encode_char(chars[i] as char);
         sequence = (sequence << 2) | mask;
     }
     sequence

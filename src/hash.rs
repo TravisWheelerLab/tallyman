@@ -1,7 +1,7 @@
 /// A very simple hash set implementation that uses
 /// linear probing to handle collisions. This is intended
 /// to be extremely lightweight to improve performance.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Hash {
     pub(crate) container: Vec<u64>,
     pub(crate) hits: Vec<u16>,
@@ -76,12 +76,12 @@ impl Hash {
         let mut probed_index = hv_index;
 
         // return if it's in the index calculated
-        if self.container[probed_index] == value{
+        if self.container[probed_index] == value {
             return probed_index;
         }
         //otherwise we need to linear probe until
         //the DCE is found at subsequent indices
-        else{
+        else {
             while self.container[probed_index] != 0 {
                 //loop to increment index, looking for the
                 //index that actually contains the given DCE
@@ -91,7 +91,7 @@ impl Hash {
                     probed_index = 0;
                 }
 
-                if self.container[probed_index] == value{
+                if self.container[probed_index] == value {
                     return probed_index;
                 }
             }
@@ -99,17 +99,14 @@ impl Hash {
         return probed_index;
     }
 
-
     pub fn inc_hits(&mut self, value: u64) {
         let hv = value % self.capacity;
         let hv_index = hv as usize;
         let mut probed_index = hv_index;
 
-        if self.container[probed_index] == value{
+        if self.container[probed_index] == value {
             self.hits[probed_index] += 1;
-        }
-
-        else{
+        } else {
             // Linear probing
             while self.container[probed_index] != 0 {
                 probed_index += 1;
@@ -119,7 +116,7 @@ impl Hash {
                 }
                 //If we are at an index that matches the DCE we're looking
                 //for, then increment the hits array at that index and stop
-                if self.container[probed_index] == value{
+                if self.container[probed_index] == value {
                     self.hits[probed_index] += 1;
                     break;
                 }
