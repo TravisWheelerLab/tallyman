@@ -1,0 +1,10 @@
+File: tests/inputs/rna-50k.fasta
+testSeq6	1
+testSeq18	1
+testSeq3	1
+testSeq20	1
+testSeq12	1
+testSeq16	1
+testSeq14	1
+testSeq17	1
+testSeq4	1
