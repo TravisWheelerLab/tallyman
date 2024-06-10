@@ -39,6 +39,10 @@ struct Args {
     /// Output file
     #[arg(long, short, value_name = "OUT")]
     output: Option<String>,
+
+    /// Verbose output
+    #[arg(long, short)]
+    verbose: bool,
 }
 
 // --------------------------------------------------
@@ -68,13 +72,13 @@ fn run(args: Args) -> Result<()> {
     }
 
     //dbg!(&map);
-    eprintln!("Time to load and hash DCE sequences: {:?}", timer.elapsed());
+    if args.verbose {
+        eprintln!(
+            "Time to load and hash DCE sequences: {:?}",
+            timer.elapsed()
+        );
+    }
 
-    // Open the output file
-    //let outfile = &args.output.unwrap();
-    //let output =
-    //    File::create(&outfile).map_err(|e| anyhow!("{outfile}: {e}"))?;
-    //let mut writer = BufWriter::new(&output);
     let mut out_file: Box<dyn Write> = match &args.output {
         Some(out_name) => Box::new(File::create(out_name)?),
         _ => Box::new(io::stdout()),
@@ -83,19 +87,20 @@ fn run(args: Args) -> Result<()> {
     // Search through each of the RNA sequences, reusing
     // the sequence and search results instances.
     let timer = Instant::now();
-
     let mut rna_loader = fasta_read::SeqLoader::from_path(&args.rna)?;
     let mut search = Search::new(needles);
     let mut results: Vec<SearchResult> = vec![];
+
     //out_file.write_fmt(format_args!("File: {}\n", args.rna))?;
     writeln!(out_file, "File: {}\n", args.rna)?;
-
     while rna_loader.next_seq(&mut sequence) {
         results.clear();
         search.search(&sequence, &mut results);
     }
 
-    eprintln!("Time to search RNA sequences: {:?}", timer.elapsed());
+    if args.verbose {
+        eprintln!("Time to search RNA sequences: {:?}", timer.elapsed());
+    }
 
     for i in 0..search.needles.hits.len() {
         if search.needles.container[i] != 0 {
