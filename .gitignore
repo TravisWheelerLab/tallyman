@@ -12,3 +12,5 @@ cachegrind.out*
 /target
 .idea/
 /venv/
+
+*.swp

@@ -1,17 +1,21 @@
-use std::env;
-use std::fs::File;
-use std::io::{BufWriter, Write};
-use std::path::Path;
-use std::time::Instant;
+use anyhow::Result;
+use clap::Parser;
+use std::{
+    fs::File,
+    io::{self, Write},
+    time::Instant,
+};
 
 extern crate multimap;
-use multimap::MultiMap;
 use crate::compress::compress_chars;
-use crate::fasta_read::SeqLoader;
-use crate::search::{Search, SearchResult};
-use crate::sequence::Seq;
-use crate::hash::Hash;
-use crate::constants::HASH_CAPACITY_MULTIPLE;
+//use crate::constants::HASH_CAPACITY_MULTIPLE;
+//use crate::hash::Hash;
+use crate::{
+    fasta_read::SeqLoader,
+    search::{Search, SearchResult},
+    sequence::Seq,
+};
+use multimap::MultiMap;
 
 pub mod alphabet;
 pub mod compress;
@@ -21,77 +25,95 @@ pub mod hash;
 pub mod search;
 pub mod sequence;
 
+#[derive(Debug, Parser)]
+#[command(author, version, about)]
+struct Args {
+    /// RNA file
+    #[arg(long, short, value_name = "RNA")]
+    rna: String,
+
+    /// DNA file
+    #[arg(long, short, value_name = "DNA")]
+    dna: String,
+
+    /// Output file
+    #[arg(long, short, value_name = "OUT")]
+    output: Option<String>,
+}
+
+// --------------------------------------------------
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    let mut _rna_file = "";
-    let mut _dna_file = "";
-    let mut _outfile = "";
-
-    if (args.len() - 1) == 3 {
-        _rna_file = &args[1];
-        _dna_file = &args[2];
-        _outfile = &args[3];
-    } else if (args.len() - 1) > 0 && (args.len() - 1) < 3 {
-        println!("Usage: run [RNAseq file] [DNA file] [Output file]");
-    } else {
-        _rna_file = "fixtures/RNAs.fasta";
-        _dna_file = "fixtures/DCEs.fasta";
-        _outfile = "output.txt";
+    if let Err(e) = run(Args::parse()) {
+        eprintln!("{e}");
+        std::process::exit(1);
     }
+}
 
+// --------------------------------------------------
+fn run(args: Args) -> Result<()> {
     // Create reusable FASTA reading machinery
     let mut sequence = Seq::new();
     let mut map = MultiMap::new();
 
-    // Load the DCE sequences and pre-compress them, and make the multimap for post-processing
-    let dce_start = Instant::now();
-
-    let mut needles = Vec::<u64>::new();
-    let mut dce_loader = SeqLoader::from_path(Path::new(&_dna_file));
+    // Load the DCE sequences and pre-compress them,
+    // make the multimap for post-processing
+    let timer = Instant::now();
+    let mut needles = vec![];
+    let mut dce_loader = SeqLoader::from_path(&args.dna)?;
     while dce_loader.next_seq(&mut sequence) {
-        let compressed_seq = compress_chars(sequence.characters, sequence.length);
+        let compressed_seq =
+            compress_chars(sequence.characters, sequence.length);
         needles.push(compressed_seq);
         map.insert(compressed_seq, sequence.identifier.clone());
     }
 
-    let duration = dce_start.elapsed();
-    println!("Time to load and hash DCE sequences: {:?}", duration);
+    //dbg!(&map);
+    eprintln!("Time to load and hash DCE sequences: {:?}", timer.elapsed());
 
     // Open the output file
-    let output = File::create(Path::new(_outfile)).unwrap();
-    let mut _writer = BufWriter::new(&output);
+    //let outfile = &args.output.unwrap();
+    //let output =
+    //    File::create(&outfile).map_err(|e| anyhow!("{outfile}: {e}"))?;
+    //let mut writer = BufWriter::new(&output);
+    let mut out_file: Box<dyn Write> = match &args.output {
+        Some(out_name) => Box::new(File::create(out_name)?),
+        _ => Box::new(io::stdout()),
+    };
 
     // Search through each of the RNA sequences, reusing
     // the sequence and search results instances.
-    let rna_start = Instant::now();
+    let timer = Instant::now();
 
-    let mut rna_loader = fasta_read::SeqLoader::from_path(Path::new(&_rna_file));
+    let mut rna_loader = fasta_read::SeqLoader::from_path(&args.rna)?;
     let mut search = Search::new(needles);
-    let mut search_results = Vec::<SearchResult>::new();
-    _writer
-        .write_fmt(format_args!("File: {} \n", _rna_file))
-        .unwrap();
+    let mut results: Vec<SearchResult> = vec![];
+    //out_file.write_fmt(format_args!("File: {}\n", args.rna))?;
+    writeln!(out_file, "File: {}\n", args.rna)?;
+
     while rna_loader.next_seq(&mut sequence) {
-        search_results.clear();
-        search.search(&sequence, &mut search_results);
+        results.clear();
+        search.search(&sequence, &mut results);
     }
 
-    let duration = rna_start.elapsed();
-    println!("Time to search RNA sequences: {:?}", duration);
-
+    eprintln!("Time to search RNA sequences: {:?}", timer.elapsed());
 
     for i in 0..search.needles.hits.len() {
         if search.needles.container[i] != 0 {
             let count = search.needles.hits[i];
             if count != 0 {
-                let names = map.get_vec(&search.needles.container[i]);
-                for j in names {
-                    for i in j{
-                        //println!("{}   {}", i, count);
-                        _writer.write_fmt(format_args!("{}\t{}\n", i, count)).unwrap();
-                    }
+                if let Some(names) = map.get_vec(&search.needles.container[i])
+                {
+                    println!("{names:?}");
                 }
+                //for j in names {
+                //    for i in j {
+                //        //println!("{}   {}", i, count);
+                //        out_file
+                //            .write_fmt(format_args!("{}\t{}\n", i, count))?;
+                //    }
+                //}
             }
         }
     }
+    Ok(())
 }

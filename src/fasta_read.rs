@@ -1,6 +1,8 @@
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::path::Path;
+use anyhow::{anyhow, Result};
+use std::{
+    fs::File,
+    io::{BufRead, BufReader},
+};
 
 use crate::constants::BUFFER_SIZE;
 use crate::sequence::Seq;
@@ -15,8 +17,8 @@ pub struct SeqLoader<T: BufRead> {
 }
 
 impl SeqLoader<BufReader<File>> {
-    pub fn from_path(path: &Path) -> SeqLoader<BufReader<File>> {
-        let file = File::open(path).unwrap();
+    pub fn from_path(path: &str) -> Result<SeqLoader<BufReader<File>>> {
+        let file = File::open(path).map_err(|e| anyhow!("{path}: {e}"))?;
         let mut loader = SeqLoader {
             source_file: BufReader::new(file),
             read_buffer: [0u8; BUFFER_SIZE],
@@ -26,7 +28,7 @@ impl SeqLoader<BufReader<File>> {
             line_length: 0,
         };
         loader.next_line();
-        loader
+        Ok(loader)
     }
 }
 
@@ -52,7 +54,8 @@ impl<T: BufRead> SeqLoader<T> {
         if self.read_index >= self.read_length {
             // There is nothing left over from last time, so
             // we can go ahead and read from the file again.
-            self.read_length = self.source_file.read(&mut self.read_buffer).unwrap();
+            self.read_length =
+                self.source_file.read(&mut self.read_buffer).unwrap();
             self.read_index = 0;
         }
     }
@@ -76,7 +79,8 @@ impl<T: BufRead> SeqLoader<T> {
                     return;
                 }
 
-                self.line_buffer[self.line_length] = self.read_buffer[self.read_index];
+                self.line_buffer[self.line_length] =
+                    self.read_buffer[self.read_index];
                 self.read_index += 1;
                 self.line_length += 1;
             }
@@ -104,7 +108,7 @@ impl<T: BufRead> SeqLoader<T> {
             seq.identifier.push(self.line_buffer[i] as char);
         }
 
-/*        TODO: Then we'll need to check here (maybe?) for the next part of fastq files:
+        /*        TODO: Then we'll need to check here (maybe?) for the next part of fastq files:
         A line of + (which may or may not have the seq identifier again following it)
         And then 1+ lines of the quality scores
         Example fastq entry:
@@ -163,10 +167,8 @@ impl<T: BufRead> SeqLoader<T> {
 
 #[cfg(test)]
 mod test {
+    use crate::{fasta_read::SeqLoader, sequence::Seq};
     use std::io::Cursor;
-
-    use crate::fasta_read::SeqLoader;
-    use crate::sequence::Seq;
 
     #[test]
     fn test_next_line() {
