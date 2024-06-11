@@ -1,20 +1,19 @@
-use anyhow::Result;
-use bio::io::{fasta, fastq};
+use anyhow::{anyhow, Result};
 use clap::Parser;
+use kseq::parse_path;
 use std::{
     fs::File,
-    io::{self, BufRead, BufReader, Write},
+    io::{self, Write},
     time::Instant,
 };
 
-extern crate multimap;
 use crate::compress::compress_chars;
 //use crate::constants::HASH_CAPACITY_MULTIPLE;
 //use crate::hash::Hash;
 use crate::{
-    fasta_read::SeqLoader,
+    //fasta_read::SeqLoader,
     search::{Search, SearchResult},
-    sequence::Seq,
+    //sequence::Seq,
 };
 use multimap::MultiMap;
 
@@ -38,19 +37,12 @@ struct Args {
     dna: String,
 
     /// Output file
-    #[arg(long, short, value_name = "OUT")]
-    output: Option<String>,
+    #[arg(long, short, value_name = "OUT", default_value = "output.txt")]
+    output: String,
 
     /// Verbose output
     #[arg(long, short)]
     verbose: bool,
-}
-
-#[derive(Debug)]
-enum FileFormat {
-    Fasta,
-    Fastq,
-    Unknown,
 }
 
 // --------------------------------------------------
@@ -64,85 +56,64 @@ fn main() {
 // --------------------------------------------------
 fn run(args: Args) -> Result<()> {
     // Create reusable FASTA reading machinery
-    //let mut map = MultiMap::new();
+    let mut map = MultiMap::new();
 
     // Load the DCE sequences and pre-compress them,
     // make the multimap for post-processing
-    //let timer = Instant::now();
-    //let mut needles = vec![];
-    //
-    let format = guess_format(&args.dna)?;
-    println!("format {format:?}");
+    let timer = Instant::now();
+    let mut needles = vec![];
 
-    //let dna = File::open(&args.dna)?;
-    //let mut records = fasta::Reader::new(dna).records();
-    //while let Some(Ok(rec)) = records.next() {
-    //    println!("{}", std::str::from_utf8(rec.seq())?);
-    //    //let compressed_seq = compress_chars(rec.seq());
-    //    //needles.push(compressed_seq);
-    //    //map.insert(compressed_seq, rec.id().to_string());
-    //}
+    let mut dna = get_reader(&args.dna)?;
+    while let Some(rec) = dna.iter_record()? {
+        let compressed_seq = compress_chars(rec.seq());
+        needles.push(compressed_seq);
+        map.insert(compressed_seq, rec.head().to_string());
+    }
 
-    //let mut sequence = Seq::new();
-    ////let mut dce_loader = SeqLoader::from_path(&args.dna)?;
-    ////while dce_loader.next_seq(&mut sequence) {
-    ////    let compressed_seq =
-    ////        compress_chars(sequence.characters, sequence.length);
-    ////    needles.push(compressed_seq);
-    ////    map.insert(compressed_seq, sequence.identifier.clone());
-    ////}
+    if args.verbose {
+        eprintln!(
+            "Time to load and hash DCE sequences: {:?}",
+            timer.elapsed()
+        );
+    }
 
-    //if args.verbose {
-    //    eprintln!(
-    //        "Time to load and hash DCE sequences: {:?}",
-    //        timer.elapsed()
-    //    );
-    //}
+    let mut out_file: Box<dyn Write> = if args.output == "-".to_string() {
+        Box::new(io::stdout())
+    } else {
+        Box::new(File::create(args.output)?)
+    };
 
-    //let mut out_file: Box<dyn Write> = match &args.output {
-    //    Some(out_name) => Box::new(File::create(out_name)?),
-    //    _ => Box::new(io::stdout()),
-    //};
+    // Search through each of the RNA sequences, reusing
+    // the sequence and search results instances.
+    let timer = Instant::now();
+    let mut rna = get_reader(&args.rna)?;
+    let mut search = Search::new(needles);
+    let mut results: Vec<SearchResult> = vec![];
 
-    //// Search through each of the RNA sequences, reusing
-    //// the sequence and search results instances.
-    //let timer = Instant::now();
-    //let mut rna_loader = SeqLoader::from_path(&args.rna)?;
-    //let mut search = Search::new(needles);
-    //let mut results: Vec<SearchResult> = vec![];
+    writeln!(out_file, "File: {}", args.rna)?;
+    while let Some(rec) = rna.iter_record()? {
+        results.clear();
+        search.search(&rec.seq(), &rec.head(), &mut results);
+    }
 
-    //writeln!(out_file, "File: {}", args.rna)?;
-    //while rna_loader.next_seq(&mut sequence) {
-    //    results.clear();
-    //    search.search(&sequence, &mut results);
-    //}
+    if args.verbose {
+        eprintln!("Time to search RNA sequences: {:?}", timer.elapsed());
+    }
 
-    //if args.verbose {
-    //    eprintln!("Time to search RNA sequences: {:?}", timer.elapsed());
-    //}
-
-    //for (i, count) in search.needles.hits.into_iter().enumerate() {
-    //    if count > 0 {
-    //        if let Some(names) = map.get_vec(&search.needles.container[i]) {
-    //            for name in names {
-    //                writeln!(out_file, "{name}\t{count}")?;
-    //            }
-    //        }
-    //    }
-    //}
+    for (i, count) in search.needles.hits.into_iter().enumerate() {
+        if count > 0 {
+            if let Some(names) = map.get_vec(&search.needles.container[i]) {
+                for name in names {
+                    writeln!(out_file, "{name}\t{count}")?;
+                }
+            }
+        }
+    }
 
     Ok(())
 }
 
-fn guess_format(file: &str) -> Result<FileFormat> {
-    let mut fh = BufReader::new(File::open(file)?);
-    let mut line = String::new();
-    let _ = fh.read_line(&mut line)?;
-    if line.starts_with(">") {
-        Ok(FileFormat::Fasta)
-    } else if line.starts_with("@") {
-        Ok(FileFormat::Fastq)
-    } else {
-        Ok(FileFormat::Unknown)
-    }
+// --------------------------------------------------
+fn get_reader(filename: &str) -> Result<kseq::Paths> {
+    parse_path(filename).map_err(|e| anyhow!("{filename}: {e}"))
 }

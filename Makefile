@@ -3,9 +3,14 @@ REL_EXE := target/release/the_count
 RNA50 = tests/inputs/rna-50k.fasta
 DNA_FA = tests/inputs/dna.fasta
 DNA_FQ = tests/inputs/dna.fastq
+BIG_DNA = fixtures/test-dna.fasta
+BIG_RNA = fixtures/test-rna.fasta
 
 fitty:
-	cargo run -- -r $(RNA50) -d $(DNA_FA)
+	cargo run -- -r $(RNA50) -d $(DNA_FA) -o -
+
+big:
+	cargo run -- -v -r $(BIG_RNA) -d $(BIG_DNA)
 
 .PHONY: benchmark
 benchmark: fixtures

@@ -6,7 +6,8 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1"
-bio = "1.6"
+# bio = "1.6"
+kseq = "0.5"
 clap = { version = "4", features = ["derive"] }
 multimap = "0.8"
 

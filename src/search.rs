@@ -1,7 +1,7 @@
 use crate::alphabet::encode_char;
 use crate::constants::HASH_CAPACITY_MULTIPLE;
 use crate::hash::Hash;
-use crate::sequence::Seq;
+//use crate::sequence::Seq;
 //use std::ops::DerefMut;
 
 pub struct SearchResult {
@@ -40,12 +40,14 @@ impl Search {
 
     pub fn search(
         &mut self,
-        haystack: &Seq,
+        sequence: &str,
+        id: &str,
         results: &mut Vec<SearchResult>,
     ) {
+        let sequence: Vec<char> = sequence.chars().collect();
         // Reset in preparation for the search.
         self.haystack_index = 0;
-        self.haystack_size = haystack.length;
+        self.haystack_size = sequence.len();
         self.haystack_window = 0;
         self.rev_haystack = 0;
         self.start_index = 0;
@@ -60,7 +62,8 @@ impl Search {
             // missing alphabet character since we've already dealt
             // with the other (valid) possibility above.
             while self.haystack_index < self.start_index + 32 {
-                let next_char = haystack.characters[self.haystack_index];
+                //let next_char = haystack.characters[self.haystack_index];
+                let next_char = sequence[self.haystack_index];
 
                 let mask = encode_char(next_char);
 
@@ -88,8 +91,7 @@ impl Search {
             if self.needles.contains(self.haystack_window) {
                 self.needles.inc_hits(self.haystack_window);
                 let result = SearchResult {
-                    // TODO: Can we get rid of this clone? Prolly not
-                    haystack: haystack.identifier.clone(),
+                    haystack: id.to_string(),
                     needle: self.haystack_window,
                     offset: self.haystack_index - 32,
                     index: self.needles.get_index(self.haystack_window),
@@ -99,8 +101,7 @@ impl Search {
             if self.needles.contains(self.rev_haystack) {
                 self.needles.inc_hits(self.rev_haystack);
                 let result = SearchResult {
-                    // TODO: Can we get rid of this clone? Prolly not
-                    haystack: haystack.identifier.clone(),
+                    haystack: id.to_string(),
                     needle: self.rev_haystack,
                     offset: self.haystack_index - 32,
                     index: self.needles.get_index(self.rev_haystack),
@@ -115,19 +116,19 @@ impl Search {
 mod test {
     use crate::compress::compress_seq;
     use crate::search::{Search, SearchResult};
-    use crate::sequence::Seq;
+    //use crate::sequence::Seq;
 
     #[test]
     fn test_min_size_search() {
-        let haystack =
-            Seq::pre_filled("id", "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG");
+        //let haystack =
+        //    Seq::pre_filled("id", "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG");
         let needles = vec![
             compress_seq("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"),
             compress_seq("GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG"),
         ];
         let mut results = Vec::<SearchResult>::new();
         let mut search = Search::new(needles);
-        search.search(&haystack, &mut results);
+        search.search("GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG", "id", &mut results);
 
         assert_eq!(results.len(), 1);
         assert_eq!(results.first().unwrap().haystack, "id");
@@ -137,15 +138,19 @@ mod test {
 
     #[test]
     fn test_larger_search() {
-        let haystack =
-            Seq::pre_filled("id", "ACACTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTACAC");
+        //let haystack =
+        //    Seq::pre_filled("id", "ACACTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTACAC");
         let needles = vec![
             compress_seq("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"),
             compress_seq("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"),
         ];
         let mut results = Vec::<SearchResult>::new();
         let mut search = Search::new(needles);
-        search.search(&haystack, &mut results);
+        search.search(
+            "ACACTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTACAC",
+            "id",
+            &mut results,
+        );
 
         assert_eq!(results.len(), 1);
         assert_eq!(results.first().unwrap().haystack, "id");

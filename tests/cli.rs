@@ -8,10 +8,15 @@ use tempfile::NamedTempFile;
 
 const PRG: &str = "the_count";
 const DNA_FA: &str = "tests/inputs/dna.fasta";
+const DNA_FQ: &str = "tests/inputs/dna.fastq";
 const RNA_FA_50K: &str = "tests/inputs/rna-50k.fasta";
+const RNA_FQ_50K: &str = "tests/inputs/rna-50k.fastq";
 const RNA_FA_100K: &str = "tests/inputs/rna-100k.fasta";
-const OUT_50K: &str = "tests/outputs/out-50k.txt";
-const OUT_100K: &str = "tests/outputs/out-100k.txt";
+const RNA_FQ_100K: &str = "tests/inputs/rna-100k.fastq";
+const OUT_FA_50K: &str = "tests/outputs/out-50k-fasta.txt";
+const OUT_FA_100K: &str = "tests/outputs/out-100k-fasta.txt";
+const OUT_FQ_50K: &str = "tests/outputs/out-50k-fastq.txt";
+const OUT_FQ_100K: &str = "tests/outputs/out-100k-fastq.txt";
 
 // --------------------------------------------------
 fn gen_bad_file() -> String {
@@ -73,12 +78,24 @@ fn run(rna: &str, dna: &str, expected_file: &str) -> Result<()> {
 
 // --------------------------------------------------
 #[test]
-fn run_50k() -> Result<()> {
-    run(RNA_FA_50K, DNA_FA, OUT_50K)
+fn run_50k_fasta() -> Result<()> {
+    run(RNA_FA_50K, DNA_FA, OUT_FA_50K)
 }
 
 // --------------------------------------------------
 #[test]
-fn run_100k() -> Result<()> {
-    run(RNA_FA_100K, DNA_FA, OUT_100K)
+fn run_50k_fastq() -> Result<()> {
+    run(RNA_FQ_50K, DNA_FQ, OUT_FQ_50K)
+}
+
+// --------------------------------------------------
+#[test]
+fn run_100k_fasta() -> Result<()> {
+    run(RNA_FA_100K, DNA_FA, OUT_FA_100K)
+}
+
+// --------------------------------------------------
+#[test]
+fn run_100k_fastq() -> Result<()> {
+    run(RNA_FQ_100K, DNA_FQ, OUT_FQ_100K)
 }
