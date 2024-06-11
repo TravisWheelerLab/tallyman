@@ -7,7 +7,7 @@ use std::{
     time::Instant,
 };
 
-use crate::compress::compress_chars;
+use crate::compress::compress_seq;
 //use crate::constants::HASH_CAPACITY_MULTIPLE;
 //use crate::hash::Hash;
 use crate::{
@@ -65,7 +65,7 @@ fn run(args: Args) -> Result<()> {
 
     let mut dna = get_reader(&args.dna)?;
     while let Some(rec) = dna.iter_record()? {
-        let compressed_seq = compress_chars(rec.seq());
+        let compressed_seq = compress_seq(rec.seq());
         needles.push(compressed_seq);
         map.insert(compressed_seq, rec.head().to_string());
     }
