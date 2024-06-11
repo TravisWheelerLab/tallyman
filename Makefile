@@ -15,11 +15,11 @@ big:
 .PHONY: benchmark
 benchmark: fixtures
 	cargo build --release
-	hyperfine --warmup 1 '$(REL_EXE) $(FIXTURES) /dev/null'
+	hyperfine --warmup 1 '$(REL_EXE) -r fixtures/test-rna.fasta -d fixtures/test-dna.fasta -o /dev/null'
 
 .PHONY: cachegrind
 cachegrind: fixtures
-	valgrind --tool=cachegrind ./$(REL_EXE) $(FIXTURES) /dev/null
+	valgrind --tool=cachegrind ./$(REL_EXE) -r fixtures/test-rna.fasta -d fixtures/test-dna.fasta -o /dev/null
 
 .PHONY: fixtures
 fixtures: $(FIXTURES)
