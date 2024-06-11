@@ -10,7 +10,16 @@ fitty:
 	cargo run -- -r $(RNA50) -d $(DNA_FA) -o -
 
 big:
-	cargo run -- -v -r $(BIG_RNA) -d $(BIG_DNA)
+	cargo run -- -v -r $(BIG_RNA) -d $(BIG_DNA) -o /dev/null
+
+io:
+	cargo instruments -t io --release -- -r $(BIG_RNA) -d $(BIG_DNA) -o /dev/null
+
+alloc:
+	cargo instruments -t Allocations --release -- -r $(BIG_RNA) -d $(BIG_DNA) -o /dev/null
+
+time:
+	cargo instruments -t time --release -- -r $(BIG_RNA) -d $(BIG_DNA) -o /dev/null
 
 .PHONY: benchmark
 benchmark: fixtures

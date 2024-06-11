@@ -1,0 +1,10 @@
+FROM ubuntu:22.04
+
+RUN apt-get update \
+    && apt-get install -y curl valgrind build-essential clang git cmake \
+
+RUN git clone https://github.com/TravisWheelerLab/the_count
+
+ENV RUST_VERSION=stable
+
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain=$RUST_VERSION
