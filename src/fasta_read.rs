@@ -132,7 +132,6 @@ impl<T: BufRead> SeqLoader<T> {
 
         // Run until we have a new sequence or have determined
         // that we don't have another valid sequence.
-        let mut ignore = false;
         loop {
             self.next_line();
 
@@ -147,11 +146,14 @@ impl<T: BufRead> SeqLoader<T> {
 
             let first = self.line_buffer[0] as char;
 
-            if first == '+' {
-                ignore = true;
-            }
+            if first == '>' || first == '@' || first == '+' {
+                if first == '+' {
+                    // Consume quality line
+                    self.next_line();
+                    // Move to next record
+                    self.next_line();
+                }
 
-            if first == '>' || first == '@' {
                 // We hit the next identifier.
                 if sequence_length == 0 {
                     return false;
@@ -160,18 +162,15 @@ impl<T: BufRead> SeqLoader<T> {
                 break;
             }
 
-            if !ignore {
-                for i in 0..self.line_length {
-                    let c = self.line_buffer[i];
-                    seq.characters[i + sequence_length] =
-                        if c >= 97 && c <= 122 {
-                            (c - 32) as char
-                        } else {
-                            c as char
-                        };
-                }
-                sequence_length += self.line_length;
+            for i in 0..self.line_length {
+                let c = self.line_buffer[i];
+                seq.characters[i + sequence_length] = if c >= 97 && c <= 122 {
+                    (c - 32) as char
+                } else {
+                    c as char
+                };
             }
+            sequence_length += self.line_length;
         }
 
         seq.length = sequence_length;
@@ -285,7 +284,7 @@ mod test {
     #[test]
     fn test_read_simple_fastq() {
         let file = Cursor::new(String::from(
-            "@foo\nab\ncd\n+\n11\n11\n@bar\ndcba\n+\n1111",
+            "@foo\nabcd\n+\n1111\n@bar\ndcba\n+\n1111",
         ));
         let mut loader = SeqLoader::from_bufread(file);
         let seq = &mut Seq::new();
