@@ -1,9 +1,11 @@
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::path::Path;
+use anyhow::{anyhow, Result};
+use std::{
+    fs::File,
+    io::{BufRead, BufReader},
+    path::Path,
+};
 
-use crate::constants::BUFFER_SIZE;
-use crate::sequence::Seq;
+use crate::{constants::BUFFER_SIZE, sequence::Seq};
 
 pub struct SeqLoader<T: BufRead> {
     source_file: T,
@@ -15,8 +17,10 @@ pub struct SeqLoader<T: BufRead> {
 }
 
 impl SeqLoader<BufReader<File>> {
-    pub fn from_path(path: &Path) -> SeqLoader<BufReader<File>> {
-        let file = File::open(path).unwrap();
+    pub fn from_path(path: &Path) -> Result<SeqLoader<BufReader<File>>> {
+        let file = File::open(path)
+            .map_err(|e| anyhow!("{}: {e}", path.to_string_lossy()))?;
+
         let mut loader = SeqLoader {
             source_file: BufReader::new(file),
             read_buffer: [0u8; BUFFER_SIZE],
@@ -26,7 +30,7 @@ impl SeqLoader<BufReader<File>> {
             line_length: 0,
         };
         loader.next_line();
-        loader
+        Ok(loader)
     }
 }
 
@@ -52,7 +56,8 @@ impl<T: BufRead> SeqLoader<T> {
         if self.read_index >= self.read_length {
             // There is nothing left over from last time, so
             // we can go ahead and read from the file again.
-            self.read_length = self.source_file.read(&mut self.read_buffer).unwrap();
+            self.read_length =
+                self.source_file.read(&mut self.read_buffer).unwrap();
             self.read_index = 0;
         }
     }
@@ -76,7 +81,8 @@ impl<T: BufRead> SeqLoader<T> {
                     return;
                 }
 
-                self.line_buffer[self.line_length] = self.read_buffer[self.read_index];
+                self.line_buffer[self.line_length] =
+                    self.read_buffer[self.read_index];
                 self.read_index += 1;
                 self.line_length += 1;
             }
@@ -93,8 +99,10 @@ impl<T: BufRead> SeqLoader<T> {
             // future we may want to be clearer about the error.
             return false;
         }
-        //TODO: Change starts here, fastq seq identifier starts with @ symbol, not >
-        if self.line_buffer[0] as char != '>' {
+
+        //TODO: Change starts here, fastq seq identifier starts with @ symbol
+        let first = self.line_buffer[0] as char;
+        if first != '>' && first != '@' {
             // We expected to find an identifier
             // here, but we didn't. Therefore we bail.
             return false;
@@ -104,7 +112,8 @@ impl<T: BufRead> SeqLoader<T> {
             seq.identifier.push(self.line_buffer[i] as char);
         }
 
-/*        TODO: Then we'll need to check here (maybe?) for the next part of fastq files:
+        /*
+         * TODO: Then we'll need to check here (maybe?) for the next part of fastq files:
         A line of + (which may or may not have the seq identifier again following it)
         And then 1+ lines of the quality scores
         Example fastq entry:
@@ -123,6 +132,7 @@ impl<T: BufRead> SeqLoader<T> {
 
         // Run until we have a new sequence or have determined
         // that we don't have another valid sequence.
+        let mut ignore = false;
         loop {
             self.next_line();
 
@@ -135,7 +145,13 @@ impl<T: BufRead> SeqLoader<T> {
                 break;
             }
 
-            if self.line_buffer[0] as char == '>' {
+            let first = self.line_buffer[0] as char;
+
+            if first == '+' {
+                ignore = true;
+            }
+
+            if first == '>' || first == '@' {
                 // We hit the next identifier.
                 if sequence_length == 0 {
                     return false;
@@ -144,15 +160,18 @@ impl<T: BufRead> SeqLoader<T> {
                 break;
             }
 
-            for i in 0..self.line_length {
-                let c = self.line_buffer[i];
-                seq.characters[i + sequence_length] = if c >= 97 && c <= 122 {
-                    (c - 32) as char
-                } else {
-                    c as char
-                };
+            if !ignore {
+                for i in 0..self.line_length {
+                    let c = self.line_buffer[i];
+                    seq.characters[i + sequence_length] =
+                        if c >= 97 && c <= 122 {
+                            (c - 32) as char
+                        } else {
+                            c as char
+                        };
+                }
+                sequence_length += self.line_length;
             }
-            sequence_length += self.line_length;
         }
 
         seq.length = sequence_length;
@@ -169,7 +188,7 @@ mod test {
     use crate::sequence::Seq;
 
     #[test]
-    fn test_next_line() {
+    fn test_next_line_fasta() {
         let file = Cursor::new(String::from(">foo\nabcd\n>bar\ndcba"));
         let mut loader = SeqLoader::from_bufread(file);
 
@@ -193,8 +212,81 @@ mod test {
     }
 
     #[test]
-    fn test_read_simple() {
+    fn test_next_line_fastq() {
+        let file = Cursor::new(String::from(
+            "@foo\nabcd\n+\n1111\n@bar\ndcba\n+\n1111",
+        ));
+        let mut loader = SeqLoader::from_bufread(file);
+
+        assert_eq!(loader.line_length, 4);
+        assert_eq!(loader.line_buffer[1] as char, 'f');
+
+        loader.next_line();
+        assert_eq!(loader.line_length, 4);
+        assert_eq!(loader.line_buffer[0] as char, 'a');
+
+        loader.next_line();
+        assert_eq!(loader.line_length, 1);
+        assert_eq!(loader.line_buffer[0] as char, '+');
+
+        loader.next_line();
+        assert_eq!(loader.line_length, 4);
+        assert_eq!(loader.line_buffer[0] as char, '1');
+
+        loader.next_line();
+        assert_eq!(loader.line_length, 4);
+        assert_eq!(loader.line_buffer[1] as char, 'b');
+
+        loader.next_line();
+        assert_eq!(loader.line_length, 4);
+        assert_eq!(loader.line_buffer[0] as char, 'd');
+
+        loader.next_line();
+        assert_eq!(loader.line_length, 1);
+        assert_eq!(loader.line_buffer[0] as char, '+');
+
+        loader.next_line();
+        assert_eq!(loader.line_length, 4);
+        assert_eq!(loader.line_buffer[0] as char, '1');
+
+        loader.next_line();
+        assert_eq!(loader.line_length, 0);
+    }
+
+    #[test]
+    fn test_read_simple_fasta() {
         let file = Cursor::new(String::from(">foo\nabcd\n>bar\ndcba"));
+        let mut loader = SeqLoader::from_bufread(file);
+        let seq = &mut Seq::new();
+
+        assert_eq!(seq.identifier, "");
+        assert_eq!(
+            seq.characters[0..seq.length],
+            Vec::<char>::new()[0..seq.length]
+        );
+
+        assert_eq!(loader.next_seq(seq), true);
+        assert_eq!(seq.identifier, "foo");
+        assert_eq!(
+            seq.characters[0..seq.length],
+            "ABCD".chars().collect::<Vec<char>>()[0..seq.length]
+        );
+
+        assert_eq!(loader.next_seq(seq), true);
+        assert_eq!(seq.identifier, "bar");
+        assert_eq!(
+            seq.characters[0..seq.length],
+            "DCBA".chars().collect::<Vec<char>>()[0..seq.length]
+        );
+
+        assert_eq!(loader.next_seq(seq), false);
+    }
+
+    #[test]
+    fn test_read_simple_fastq() {
+        let file = Cursor::new(String::from(
+            "@foo\nab\ncd\n+\n11\n11\n@bar\ndcba\n+\n1111",
+        ));
         let mut loader = SeqLoader::from_bufread(file);
         let seq = &mut Seq::new();
 
