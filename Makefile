@@ -1,5 +1,5 @@
 FIXTURES := fixtures/test-rna.fasta fixtures/test-dna.fasta
-REL_EXE := target/release/the_count
+REL_EXE := target/release/tallyman
 
 .PHONY: benchmark
 benchmark: fixtures
