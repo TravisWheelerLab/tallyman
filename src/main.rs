@@ -5,13 +5,13 @@ use std::path::Path;
 use std::time::Instant;
 
 extern crate multimap;
-use multimap::MultiMap;
 use crate::compress::compress_chars;
+use crate::constants::HASH_CAPACITY_MULTIPLE;
 use crate::fasta_read::SeqLoader;
+use crate::hash::Hash;
 use crate::search::{Search, SearchResult};
 use crate::sequence::Seq;
-use crate::hash::Hash;
-use crate::constants::HASH_CAPACITY_MULTIPLE;
+use multimap::MultiMap;
 
 pub mod alphabet;
 pub mod compress;
@@ -49,7 +49,8 @@ fn main() {
     let mut needles = Vec::<u64>::new();
     let mut dce_loader = SeqLoader::from_path(Path::new(&_dna_file));
     while dce_loader.next_seq(&mut sequence) {
-        let compressed_seq = compress_chars(sequence.characters, sequence.length);
+        let compressed_seq =
+            compress_chars(sequence.characters, sequence.length);
         needles.push(compressed_seq);
         map.insert(compressed_seq, sequence.identifier.clone());
     }
@@ -65,7 +66,8 @@ fn main() {
     // the sequence and search results instances.
     let rna_start = Instant::now();
 
-    let mut rna_loader = fasta_read::SeqLoader::from_path(Path::new(&_rna_file));
+    let mut rna_loader =
+        fasta_read::SeqLoader::from_path(Path::new(&_rna_file));
     let mut search = Search::new(needles);
     let mut search_results = Vec::<SearchResult>::new();
     _writer
@@ -79,16 +81,17 @@ fn main() {
     let duration = rna_start.elapsed();
     println!("Time to search RNA sequences: {:?}", duration);
 
-
     for i in 0..search.needles.hits.len() {
         if search.needles.container[i] != 0 {
             let count = search.needles.hits[i];
             if count != 0 {
                 let names = map.get_vec(&search.needles.container[i]);
                 for j in names {
-                    for i in j{
+                    for i in j {
                         //println!("{}   {}", i, count);
-                        _writer.write_fmt(format_args!("{}\t{}\n", i, count)).unwrap();
+                        _writer
+                            .write_fmt(format_args!("{}\t{}\n", i, count))
+                            .unwrap();
                     }
                 }
             }
