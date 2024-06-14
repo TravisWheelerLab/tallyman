@@ -60,10 +60,11 @@ fn run(args: Args) -> Result<()> {
     let mut dce_loader = SeqLoader::from_path(Path::new(&args.dna))?;
     while dce_loader.next_seq(&mut sequence) {
         let compressed_seq =
-            compress_chars(sequence.characters, sequence.length);
+            compress_chars(sequence.characters, sequence.length)?;
         needles.push(compressed_seq);
         map.insert(compressed_seq, sequence.identifier.clone());
     }
+    dbg!(&map);
 
     let duration = dce_start.elapsed();
     println!("Time to load and hash DCE sequences: {:?}", duration);
@@ -76,13 +77,16 @@ fn run(args: Args) -> Result<()> {
     let rna_start = Instant::now();
 
     let mut rna_loader = SeqLoader::from_path(Path::new(&args.rna))?;
+    dbg!(&needles);
     let mut search = Search::new(needles);
+    dbg!(&search.needles.container);
     let mut search_results = Vec::<SearchResult>::new();
     writeln!(output, "File: {}", &args.rna)?;
     while rna_loader.next_seq(&mut sequence) {
         search_results.clear();
         search.search(&sequence, &mut search_results);
     }
+    dbg!(&search_results);
 
     let duration = rna_start.elapsed();
     println!("Time to search RNA sequences: {:?}", duration);

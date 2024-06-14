@@ -4,6 +4,7 @@ use crate::hash::Hash;
 use crate::sequence::Seq;
 //use std::ops::DerefMut;
 
+#[derive(Debug)]
 pub struct SearchResult {
     pub haystack: String,
     pub needle: u64,
@@ -11,6 +12,7 @@ pub struct SearchResult {
     pub index: usize,
 }
 
+#[derive(Debug)]
 pub struct Search {
     haystack_index: usize,
     haystack_size: usize,
@@ -24,6 +26,7 @@ impl Search {
     pub fn new(needles: Vec<u64>) -> Search {
         let mut needles_hash =
             Hash::new(needles.len() * HASH_CAPACITY_MULTIPLE);
+
         for needle in needles {
             needles_hash.add(needle);
         }
@@ -43,6 +46,10 @@ impl Search {
         haystack: &Seq,
         results: &mut Vec<SearchResult>,
     ) {
+        if haystack.length <= 32 {
+            return ();
+        }
+
         // Reset in preparation for the search.
         self.haystack_index = 0;
         self.haystack_size = haystack.length;
@@ -85,6 +92,7 @@ impl Search {
 
             // Compare the current haystack sequence against each of
             // the needle sequences and return the first match we find.
+            //println!("{:#064b}", self.haystack_window);
             if self.needles.contains(self.haystack_window) {
                 self.needles.inc_hits(self.haystack_window);
                 let result = SearchResult {

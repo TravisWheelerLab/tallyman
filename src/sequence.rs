@@ -1,5 +1,6 @@
 use crate::constants::BUFFER_SIZE;
 
+#[derive(Debug)]
 pub struct Seq {
     pub identifier: String,
     pub length: usize,
