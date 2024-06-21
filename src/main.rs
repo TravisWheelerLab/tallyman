@@ -5,10 +5,9 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 use clap::Parser;
-use dashmap::DashMap;
+//use dashmap::DashMap;
 use kseq::parse_path;
 use multimap::MultiMap;
-//use rayon::prelude::*;
 use std::{
     fs::File,
     io::{self, Write},
@@ -84,32 +83,34 @@ fn run(args: Args) -> Result<()> {
     let mut rna = get_reader(&args.rna)?;
     writeln!(out_file, "File: {}", &args.rna)?;
 
-    ////let mut results: Vec<SearchResult> = vec![];
-    //let mut search = Search::new(needles);
-    //while let Some(rec) = rna.iter_record()? {
-    //    //results.clear();
-    //    //search.search(rec.seq(), rec.head(), &mut results);
-    //    search.search(rec.seq());
-    //}
+    //let mut results: Vec<SearchResult> = vec![];
+    let mut search = Search::new(needles);
+    while let Some(rec) = rna.iter_record()? {
+        //results.clear();
+        //search.search(rec.seq(), rec.head(), &mut results);
+        search.search(rec.seq());
+    }
     //dbg!(&search.needles.hits);
 
-    //for (i, count) in search.needles.hits.into_iter().enumerate() {
-    //    if count > 0 {
-    //        if let Some(names) = map.get_vec(&search.needles.container[i]) {
-    //            for name in names {
-    //                writeln!(out_file, "{name}\t{count}")?;
-    //            }
-    //        }
-    //    }
-    //}
-
-    let search = Search::new(needles);
-    let hits: DashMap<u64, u32> = DashMap::new();
-
-    while let Some(rec) = rna.iter_record()? {
-        search.pure_search(&search.needles, rec.seq(), &hits);
+    for (i, count) in search.needles.hits.into_iter().enumerate() {
+        if count > 0 {
+            if let Some(names) = map.get_vec(&search.needles.container[i]) {
+                for name in names {
+                    writeln!(out_file, "{name}\t{count}")?;
+                }
+            }
+        }
     }
 
+    // Using DashMap
+    //let search = Search::new(needles);
+    //let hits: DashMap<u64, u32> = DashMap::new();
+
+    //while let Some(rec) = rna.iter_record()? {
+    //    search.pure_search(&search.needles, rec.seq(), &hits);
+    //}
+
+    // Attempt to use parallel but runs out of memory
     //let mut seqs = vec![];
     //while let Some(rec) = rna.iter_record()? {
     //    seqs.push(rec.seq().to_string());
@@ -119,13 +120,13 @@ fn run(args: Args) -> Result<()> {
     //});
 
     //dbg!(&hits);
-    for hit in hits.iter() {
-        if let Some(names) = map.get_vec(&hit.key()) {
-            for name in names {
-                writeln!(out_file, "{name}\t{}", hit.value())?;
-            }
-        }
-    }
+    //for hit in hits.iter() {
+    //    if let Some(names) = map.get_vec(&hit.key()) {
+    //        for name in names {
+    //            writeln!(out_file, "{name}\t{}", hit.value())?;
+    //        }
+    //    }
+    //}
 
     if args.verbose {
         eprintln!("Time to search RNA sequences: {:?}", timer.elapsed());
