@@ -8,7 +8,7 @@ use clap::Parser;
 use dashmap::DashMap;
 use kseq::parse_path;
 use multimap::MultiMap;
-use rayon::prelude::*;
+//use rayon::prelude::*;
 use std::{
     fs::File,
     io::{self, Write},
@@ -20,7 +20,6 @@ pub mod compress;
 pub mod constants;
 pub mod hash;
 pub mod search;
-//pub mod sequence;
 
 #[derive(Debug, Parser)]
 #[command(author, version, about)]
@@ -107,17 +106,17 @@ fn run(args: Args) -> Result<()> {
     let search = Search::new(needles);
     let hits: DashMap<u64, u32> = DashMap::new();
 
-    //while let Some(rec) = rna.iter_record()? {
-    //    search.pure_search(&search.needles, rec.seq(), &hits);
-    //}
-
-    let mut seqs = vec![];
     while let Some(rec) = rna.iter_record()? {
-        seqs.push(rec.seq().to_string());
+        search.pure_search(&search.needles, rec.seq(), &hits);
     }
-    seqs.par_iter().for_each(|seq| {
-        search.pure_search(&search.needles, &seq, &hits);
-    });
+
+    //let mut seqs = vec![];
+    //while let Some(rec) = rna.iter_record()? {
+    //    seqs.push(rec.seq().to_string());
+    //}
+    //seqs.par_iter().for_each(|seq| {
+    //    search.pure_search(&search.needles, &seq, &hits);
+    //});
 
     //dbg!(&hits);
     for hit in hits.iter() {
