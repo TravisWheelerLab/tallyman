@@ -70,6 +70,36 @@ impl Hash {
         false
     }
 
+    /// Return the position in the insertion order for the
+    /// given value, or `0` if the value is not present.
+    /// Also, go ahead and increment the hits if found
+    pub fn find_inc(&mut self, value: u64) -> Option<usize> {
+        let hv = value % self.capacity;
+
+        // We may now cast hv to a usize because we're sure
+        // that it is < self.size and will therefore fit.
+        let hv_index = hv as usize;
+        let mut probed_index = hv_index;
+
+        while self.container[probed_index] != 0 {
+            if self.container[probed_index] == value {
+                self.hits[probed_index] += 1;
+                return Some(probed_index);
+            }
+            probed_index += 1;
+
+            if probed_index >= self.capacity as usize {
+                probed_index = 0;
+            }
+
+            if probed_index == hv_index {
+                return None;
+            }
+        }
+
+        None
+    }
+
     pub fn get_index(&mut self, value: u64) -> usize {
         let hv = value % self.capacity;
         let hv_index = hv as usize;
@@ -96,7 +126,12 @@ impl Hash {
                 }
             }
         }
-        return probed_index;
+
+        probed_index
+    }
+
+    pub fn inc_at(&mut self, index: usize) {
+        self.hits[index] += 1;
     }
 
     pub fn inc_hits(&mut self, value: u64) {

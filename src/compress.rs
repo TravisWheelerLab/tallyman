@@ -1,30 +1,24 @@
-use crate::alphabet::encode_char;
-use crate::constants::BUFFER_SIZE;
+use crate::{alphabet::encode_char, constants::BUFFER_SIZE};
 
 pub type CompressedSeq = u64;
 
 /// Creates and returns a compressed version of the given `Seq`,
 /// provided that the instance is exactly 32 base pairs long.
-pub fn compress_seq(seq: &str) -> CompressedSeq {
-    assert_eq!(seq.len(), 32, "sequence must have length 32");
-    let mut sequence = 0u64;
-    for nuc in seq.chars() {
-        let mask = encode_char(nuc);
-        sequence = (sequence << 2) | mask;
-    }
-    sequence
+pub fn compress_seq(seq: &str) -> Option<CompressedSeq> {
+    (seq.len() == 32).then(|| {
+        seq.chars()
+            .fold(0, |seq, chr| (seq << 2) | encode_char(chr))
+    })
 }
 
 pub fn compress_chars(
     chars: [char; BUFFER_SIZE],
     length: usize,
 ) -> CompressedSeq {
-    let mut sequence = 0u64;
-    for i in 0..length {
-        let mask = encode_char(chars[i]);
-        sequence = (sequence << 2) | mask;
-    }
-    sequence
+    chars
+        .iter()
+        .take(length)
+        .fold(0, |seq, chr| (seq << 2) | encode_char(*chr))
 }
 
 #[cfg(test)]
@@ -34,7 +28,11 @@ mod tests {
     #[test]
     fn new_compressed_seq() {
         let seq = "ACGTACGTACGTACGTACGTACGTACGTACGT";
-        let comp_seq = compress_seq(seq);
-        assert_eq!(comp_seq, 0x1b1b1b1b1b1b1b1b);
+        let comp = compress_seq(seq);
+        assert_eq!(comp, Some(0x1b1b1b1b1b1b1b1b));
+
+        let rev: String = seq.chars().rev().collect();
+        let comp = compress_seq(&rev);
+        assert_eq!(comp, Some(0xe4e4e4e4e4e4e4e4));
     }
 }

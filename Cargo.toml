@@ -1,12 +1,12 @@
 [package]
-name = "the_count"
-version = "0.2.0"
-authors = ["George Lesica <george@lesica.com>", "Ken Youens-Clark <kyclark@arizona.edu>"]
+name = "tallyman"
+version = "0.3.0"
+authors = ["George Lesica <george@lesica.com>", 
+  "Ken Youens-Clark <kyclark@arizona.edu>"]
 edition = "2021"
 
 [dependencies]
 anyhow = "1"
-# bio = "1.6"
 kseq = "0.5"
 clap = { version = "4", features = ["derive"] }
 multimap = "0.8"
