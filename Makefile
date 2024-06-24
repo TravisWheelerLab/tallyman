@@ -1,5 +1,5 @@
 FIXTURES := fixtures/test-rna.fasta fixtures/test-dna.fasta
-REL_EXE := target/release/the_count
+REL_EXE := target/release/tallyman
 RNA50 = tests/inputs/rna-50k.fasta
 DNA_FA = tests/inputs/dna.fasta
 DNA_FQ = tests/inputs/dna.fastq
