@@ -38,6 +38,7 @@ impl Search {
         }
     }
 
+    // Nothing seems to use the search results (which uses the id)
     pub fn search(
         &mut self,
         sequence: &str,
@@ -107,34 +108,38 @@ impl Search {
             //    results.push(result);
             //}
 
-            dbg!(&self.haystack_window);
-            if let Some(index) = self.needles.find_inc(self.haystack_window) {
-                dbg!(index);
-                //self.needles.inc_at(index);
-                //let result = SearchResult {
-                //    haystack: id.to_string(),
-                //    needle: self.haystack_window,
-                //    offset: self.haystack_index - 32,
-                //    index,
-                //};
-                //results.push(result);
-            }
+            //dbg!(&self.haystack_window);
+            self.needles.inc_hits(self.haystack_window);
+            //if let Some(index) = self.needles.find_inc(self.haystack_window) {
+            //    dbg!(index);
+            //    self.needles.inc_at(index);
+            //    let result = SearchResult {
+            //        haystack: id.to_string(),
+            //        needle: self.haystack_window,
+            //        offset: self.haystack_index - 32,
+            //        index,
+            //    };
+            //    results.push(result);
+            //}
 
-            dbg!(&self.rev_haystack);
-            if let Some(index) = self.needles.find_inc(self.rev_haystack) {
-                dbg!(index);
-                //self.needles.inc_at(index);
-                //let result = SearchResult {
-                //    haystack: id.to_string(),
-                //    needle: self.rev_haystack,
-                //    offset: self.haystack_index - 32,
-                //    index,
-                //};
-                //results.push(result);
-            }
+            //dbg!(&self.rev_haystack);
+            self.needles.inc_hits(self.rev_haystack);
+            //if let Some(index) = self.needles.find_inc(self.rev_haystack) {
+            //    dbg!(index);
+            //    self.needles.inc_at(index);
+            //    let result = SearchResult {
+            //        haystack: id.to_string(),
+            //        needle: self.rev_haystack,
+            //        offset: self.haystack_index - 32,
+            //        index,
+            //    };
+            //    results.push(result);
+            //}
         }
     }
 
+    // An attempt to remove mutable access to self to use in parallel
+    // But uses DashMap to update hits and I'm not positive this is great
     pub fn pure_search(
         &self,
         needles: &Hash,
@@ -182,7 +187,7 @@ impl Search {
                 if let Some(_index) = needles.find(*val) {
                     //let index = index as u64;
                     dbg!(val);
-                    if let Some(mut count) = hits.get_mut(&val) {
+                    if let Some(mut count) = hits.get_mut(val) {
                         *count += 1;
                     } else {
                         hits.insert(*val, 1);
