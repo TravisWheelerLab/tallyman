@@ -1,17 +1,25 @@
 FIXTURES := fixtures/test-rna.fasta fixtures/test-dna.fasta
-REL_EXE := target/release/the_count
+REL_EXE := target/release/tallyman
 RNA50 = tests/inputs/rna-50k.fasta
 RNA100 = tests/inputs/rna-100k.fasta
 DNA_FA = tests/inputs/dna.fasta
 DNA_FQ = tests/inputs/dna.fastq
+DNA_DUP = tests/inputs/dups.fa
+DNA_SHORT = tests/inputs/too_short.fa
 BIG_DNA = fixtures/test-dna.fasta
 BIG_RNA = fixtures/test-rna.fasta
 
 fitty:
-	cargo run -- -r $(RNA50) -d $(DNA_FA) -o -
+	cargo run -- -v -r $(RNA50) -d $(DNA_FA) -o -
+
+dups:
+	cargo run -- -v -r $(RNA50) -d $(DNA_DUP) -o -
+
+short:
+	cargo run -- -v -r $(RNA50) -d $(DNA_SHORT) -o -
 
 hunna:
-	cargo run -- -r $(RNA100) -d $(DNA_FA) -o -
+	cargo run -- -v -r $(RNA100) -d $(DNA_FA) -o -
 
 big:
 	cargo run -- -v -r $(BIG_RNA) -d $(BIG_DNA) -o /dev/null

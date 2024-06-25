@@ -6,7 +6,7 @@ use rand::{distributions::Alphanumeric, Rng};
 use std::{fs, path::Path};
 use tempfile::NamedTempFile;
 
-const PRG: &str = "the_count";
+const PRG: &str = "tallyman";
 const DNA_FA: &str = "tests/inputs/dna.fasta";
 const DNA_FQ: &str = "tests/inputs/dna.fastq";
 const RNA_FA_50K: &str = "tests/inputs/rna-50k.fasta";
