@@ -1,13 +1,25 @@
 [package]
 name = "tallyman"
-version = "0.1.0"
-authors = ["George Lesica <george@lesica.com>"]
-edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+version = "0.3.0"
+authors = ["George Lesica <george@lesica.com>", 
+  "Ken Youens-Clark <kyclark@arizona.edu>"]
+edition = "2021"
 
 [dependencies]
-multimap = "0.8.2"
+anyhow = "1"
+kseq = "0.5"
+clap = { version = "4", features = ["derive"] }
+multimap = "0.8"
+rayon = "1.10.0"
+dashmap = "5.5.3"
+
+[dev-dependencies]
+assert_cmd = "2"
+predicates = "3"
+pretty_assertions = "1"
+rand = "0.8"
+tempfile = "3"
+cargo-instruments = "0.4.9"
 
 [profile.release]
 debug = true
