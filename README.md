@@ -1,7 +1,7 @@
 
 # Tallyman
 
-image::images/banana.jpeg[A Banana]
+[image::images/banana.jpeg](A Banana)
 
 A tool for counting exact K-mer occurrences in a DNA or RNA sequence very, very
 quickly (where K=32).
