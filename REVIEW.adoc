@@ -1,0 +1,982 @@
+= Tallyman Code Review (24-June-2024)
+
+https://github.com/TravisWheelerLab/tallyman
+
+See branch `kyclark` for proposed changes.
+
+image::banana.jpeg[]
+
+== Author
+
+Ken Youens-Clark <kyclark@arizona.edu>
+
+== Parsing Command-Line Args
+
+Original code manually parses args:
+
+----
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    let mut _rna_file = "";
+    let mut _dna_file = "";
+    let mut _outfile = "";
+
+    if (args.len() - 1) == 3 {
+        _rna_file = &args[1];
+        _dna_file = &args[2];
+        _outfile = &args[3];
+    } else if (args.len() - 1) > 0 && (args.len() - 1) < 3 {
+        println!("Usage: run [RNAseq file] [DNA file] [Output file]");
+    } else {
+        _rna_file = "fixtures/RNAs.fasta";
+        _dna_file = "fixtures/DCEs.fasta";
+        _outfile = "output.txt";
+    }
+----
+
+NOTE: The use of leading underscores in Rust is functional as it indicates that a variable is not used. In other languages, it might be a hint to the reader that the variable is intended to be private. Since the variables are already private to the function and are actually used, I could find no reason to keep the underscores.
+
+This code produces no help and panics if not given the required arguments:
+
+----
+$ cargo run
+...
+thread 'main' panicked at src/fasta_read.rs:19:37:
+called `Result::unwrap()` on an `Err` value: Os { code: 2, kind: NotFound, message: "No such file or directory" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+----
+
+Propose to use `clap` (derive pattern):
+
+----
+use clap::Parser;
+
+#[derive(Debug, Parser)]
+#[command(author, version, about)]
+struct Args {
+    /// RNA file
+    #[arg(long, short, value_name = "RNA")]
+    rna: String,
+
+    /// DNA file
+    #[arg(long, short, value_name = "DNA")]
+    dna: String,
+
+    /// Output file
+    #[arg(long, short, value_name = "OUT", default_value = "output.txt")]
+    output: String,
+
+    /// Verbose output
+    #[arg(long, short)]
+    verbose: bool,
+}
+----
+
+This produces nice usage:
+
+----
+$ cargo run -- --help
+Usage: tallyman [OPTIONS] --rna <RNA> --dna <DNA>
+
+Options:
+  -r, --rna <RNA>     RNA file
+  -d, --dna <DNA>     DNA file
+  -o, --output <OUT>  Output file [default: output.txt]
+  -v, --verbose       Verbose output
+  -h, --help          Print help
+  -V, --version       Print version
+----
+
+== Error Handling
+
+The `main::main` entry point does not handle errors and allows panics as shown previously.
+As written, it returns the unit type:
+
+----
+fn main() {}
+----
+
+Code like the following assumes fallible calls always succeed and call `Result::unwrap`:
+
+----
+let output = File::create(Path::new(_outfile)).unwrap();
+...
+_writer
+    .write_fmt(format_args!("File: {} \n", _rna_file))
+    .unwrap();
+----
+
+Propose to add a `run` function that accepts the parsed `Args` and returns a `Result`:
+
+----
+fn run(args: Args) -> Result<()> {}
+----
+
+The `main` now calls `run` that prints any propogated error to `STDERR` and exits with a nonzero status:
+
+----
+fn main() {
+    if let Err(e) = run(Args::parse()) {
+        eprintln!("{e}");
+        std::process::exit(1);
+    }
+}
+----
+
+NOTE: I tend to favor https://docs.rs/anyhow/latest/anyhow/type.Result.html[`anyhow::Result`] over https://doc.rust-lang.org/std/result/enum.Result.html[`std::result::Result`] along with the `anyhow` macros like `bail!` to exit with an error and `anyhow!` to format a string and cast into an error.
+
+== Reading FASTX Input
+
+The _src/fasta_read.rs_ file handles only FASTA-formatted sequences up to a length of 4096:
+
+----
+$ wc long.fa
+       2       2   50004 long.fa
+
+$ cargo run -- long.fa long.fa output.txt
+...
+thread 'main' panicked at src/fasta_read.rs:79:17:
+index out of bounds: the len is 4096 but the index is 4096
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+----
+
+Extending existing code to handle FASTQ sequences was possible, but leaves the limitation of sequence length.
+Propose to use https://docs.rs/kseq/0.5.3/kseq/index.html[kseq] as it handles FASTQ/A and gzipped input.
+Since both the DNA and RNA file need to be parsed, a generic function can take the filenames and return a reader using https://docs.rs/kseq/0.5.3/kseq/fn.parse_path.html[kseq::parse_path]:
+
+----
+fn get_reader(filename: &str) -> Result<kseq::Paths> {
+    parse_path(filename).map_err(|e| anyhow!("{filename}: {e}"))
+}
+----
+
+NOTE: The original code favored creating `std::path::Path` objects, but I could find no gain in moving beyond strings:
+
+----
+let mut dce_loader = SeqLoader::from_path(Path::new(&_dna_file));
+----
+
+== Loding DCE Sequences
+
+The original code reuses a mutable `Seq` object to read each sequence, then compress the sequence:
+
+----
+fn main() {
+    ...
+
+    // Create reusable FASTA reading machinery
+    let mut sequence = Seq::new();
+    let mut map = MultiMap::new();
+
+    // Load the DCE sequences and pre-compress them, and make the 
+    // multimap for post-processing
+    let dce_start = Instant::now();
+
+    let mut needles = Vec::<u64>::new();
+    let mut dce_loader = SeqLoader::from_path(Path::new(&_dna_file));
+    while dce_loader.next_seq(&mut sequence) {
+      let compressed_seq = compress_chars(sequence.characters, sequence.length);
+      needles.push(compressed_seq);
+      map.insert(compressed_seq, sequence.identifier.clone());
+    }
+
+    let duration = dce_start.elapsed();
+    println!("Time to load and hash DCE sequences: {:?}", duration);
+----
+
+Proposed changes are similar but dynamically allocating memory structures like the sequence record:
+
+----
+fn run(args: Args) -> Result<()> {
+    let timer = Instant::now();
+    let mut map = MultiMap::new();
+    let mut needles = vec![];
+    let mut dna = get_reader(&args.dna)?;
+
+    while let Some(rec) = dna.iter_record()? { <1>
+        if let Some(comp) = compress_seq(rec.seq()) { <2>
+            needles.push(comp);
+            map.insert(comp, rec.head().to_string()); <3>
+        }
+    }
+
+    if args.verbose { <4>
+        eprintln!(
+            "Time to load and hash DCE sequences: {:?}",
+            timer.elapsed()
+        );
+    }
+----
+
+<1> Use https://docs.rs/kseq/0.5.3/kseq/record/struct.Reader.html#method.iter_record[kseq::Record::iter_record] to read next record. This could fail, so use `?` to propogate errors to `main`.
+<2> Use `compress::compress_seq` on the sequence string rather than compressing each character as before. Only returns `Some` value if the sequence is 32 characters (see next).
+<3> Insert this compressed sequence into the multimap.
+<4> Only print timer info if verbose output is requested.
+
+The original `compress_seq` function panics if the input sequence length is not 32:
+
+----
+pub fn compress_seq(seq: &str) -> CompressedSeq {
+    if seq.len() != 32 {
+        panic!("sequence must have length 32")
+    } else {
+        let mut sequence = 0u64;
+        for nuc in seq.chars() {
+            let mask = encode_char(nuc);
+            sequence = (sequence << 2) | mask;
+        }
+        sequence
+    }
+}
+----
+
+The proposed function returns an `Option`, so sequences not 32 characters are skipped.
+*Is this OK?*
+
+----
+pub fn compress_seq(seq: &str) -> Option<CompressedSeq> {
+    (seq.len() == 32).then(|| {
+        seq.chars()
+            .fold(0, |seq, chr| (seq << 2) | encode_char(chr))
+    })
+}
+----
+
+== Writing Output
+
+Original code expects to write to disk.
+Proposed changes allow argument `-` to indicate `STDOUT`:
+
+----
+    let mut out_file: Box<dyn Write> = if args.output == *"-" {
+        Box::new(io::stdout())
+    } else {
+        Box::new(File::create(args.output)?)
+    };
+----
+
+Original code uses https://doc.rust-lang.org/std/io/trait.Write.html#method.write_fmt[Write::write_fmt]:
+
+----
+    _writer
+        .write_fmt(format_args!("File: {} \n", _rna_file))
+        .unwrap();
+----
+
+Per the preceding docs, _This method is primarily used to interface with the format_args!() macro, and it is rare that this should explicitly be called. The write!() macro should be favored to invoke this method instead._
+
+Proposed code uses standard https://doc.rust-lang.org/std/macro.writeln.html[`writeln!`] macro:
+
+----
+    writeln!(out_file, "File: {}", &args.rna)?;
+----
+
+NOTE: Is this line necessary? Maybe a question for Clément, but does the output file need to note the name of the RNA file? Could results be pooled into a single file?
+
+== Searching
+
+Original code reads each sequence into a mutable `Seq` object, clears the mutable vector of `SearchResult` objects, and then searches the sequence to place the results into the vector:
+
+----
+    let rna_start = Instant::now();
+    let mut rna_loader = fasta_read::SeqLoader::from_path(Path::new(&_rna_file));
+    let mut search = Search::new(needles);
+    let mut search_results = Vec::<SearchResult>::new();
+    _writer
+        .write_fmt(format_args!("File: {} \n", _rna_file))
+        .unwrap();
+
+    while rna_loader.next_seq(&mut sequence) {
+        search_results.clear();
+        search.search(&sequence, &mut search_results);
+    }
+----
+
+The `search` crate:
+
+----
+use crate::alphabet::encode_char;
+use crate::constants::HASH_CAPACITY_MULTIPLE;
+use crate::hash::Hash;
+use crate::sequence::Seq;
+use std::ops::DerefMut;
+
+pub struct SearchResult {
+    pub haystack: String,
+    pub needle: u64,
+    pub offset: usize,
+    pub index: usize,
+}
+
+pub struct Search {
+    haystack_index: usize,
+    haystack_size: usize,
+    haystack_window: u64,
+    rev_haystack: u64,
+    pub needles: Hash,
+    start_index: usize,
+}
+
+impl Search {
+    pub fn new(needles: Vec<u64>) -> Search {
+        let mut needles_hash = Hash::new(needles.len() * HASH_CAPACITY_MULTIPLE);
+        for needle in needles {
+            needles_hash.add(needle);
+        }
+
+        Search {
+            haystack_index: 0,
+            haystack_size: 0,
+            haystack_window: 0,
+            rev_haystack: 0,
+            needles: needles_hash,
+            start_index: 0,
+        }
+    }
+----
+
+The `search` function uses internal mutable state for search position. 
+This is a problem for parallel computation.
+More importantly, is this searching forward and reverse sequences?
+
+----
+    pub fn search(&mut self, haystack: &Seq, results: &mut Vec<SearchResult>) {
+        // Reset in preparation for the search.
+        self.haystack_index = 0; <1>
+        self.haystack_size = haystack.length;
+        self.haystack_window = 0;
+        self.rev_haystack = 0;
+        self.start_index = 0;
+
+        // If we don't have at least 32 nucleotides remaining, we
+        // know we are finished.
+        'search: while self.start_index <= self.haystack_size - 32 {
+            // Bootstrap by encoding the next 31 nucleotides if we
+            // haven't done it yet. This happens at the beginning of
+            // a search and immediately after a bad character has
+            // been encountered. We can ignore the possibility of a
+            // missing alphabet character since we've already dealt
+            // with the other (valid) possibility above.
+            while self.haystack_index < self.start_index + 32 {
+                let next_char = haystack.characters[self.haystack_index];
+
+                let mask = encode_char(next_char);
+
+                // If we find a bad character, we basically just restart
+                // the search from the next character.
+                if mask == 255 {
+                    self.start_index = self.haystack_index + 1;
+                    self.haystack_index = self.start_index;
+                    continue 'search;
+                }
+
+                self.haystack_window = (self.haystack_window << 2) | mask;
+                let new_mask = !mask;
+                self.rev_haystack = (self.rev_haystack >> 2) | (new_mask<<62);
+                self.haystack_index += 1;
+            }
+
+            // Bump the start index in order to slide the window one
+            // nucleotide to the right.
+            self.start_index += 1;
+
+            // Compare the current haystack sequence against each of
+            // the needle sequences and return the first match we find.
+            if self.needles.contains(self.haystack_window){ <1>
+                self.needles.inc_hits(self.haystack_window); <2>
+                let result = SearchResult {
+                    // TODO: Can we get rid of this clone? Prolly not
+                    haystack: haystack.identifier.clone(),
+                    needle: self.haystack_window,
+                    offset: self.haystack_index - 32,
+                    index: self.needles.get_index(self.haystack_window), <3>
+                };
+                results.push(result);
+            }
+            if self.needles.contains(self.rev_haystack ) {
+                self.needles.inc_hits(self.rev_haystack);
+                let result = SearchResult {
+                    // TODO: Can we get rid of this clone? Prolly not
+                    haystack: haystack.identifier.clone(),
+                    needle: self.rev_haystack,
+                    offset: self.haystack_index - 32,
+                    index: self.needles.get_index(self.rev_haystack)
+                };
+                results.push(result);
+            }
+        }
+    }
+}
+----
+
+<1> `Hash::contains`
+<2> `Hash::inc_hits`
+<3> `Hash::get_index`
+
+The preceding three functions are nearly identical in their work:
+
+----
+    /// Return the position in the insertion order for the
+    /// given value, or `0` if the value is not present.
+    pub fn contains(&self, value: u64) -> bool {
+        let hv = value % self.capacity;
+
+        // We may now cast hv to a usize because we're sure
+        // that it is < self.size and will therefore fit.
+        let hv_index = hv as usize;
+        let mut probed_index = hv_index;
+
+        while self.container[probed_index] != 0 {
+            if self.container[probed_index] == value {
+                return true;
+            }
+            probed_index += 1;
+
+            if probed_index >= self.capacity as usize {
+                probed_index = 0;
+            }
+
+            if probed_index == hv_index {
+                return false;
+            }
+        }
+
+        false
+    }
+
+    pub fn inc_hits(&mut self, value: u64) {
+        let hv = value % self.capacity;
+        let hv_index = hv as usize;
+        let mut probed_index = hv_index;
+
+        if self.container[probed_index] == value{
+            self.hits[probed_index] += 1;
+        }
+
+        else{
+            // Linear probing
+            while self.container[probed_index] != 0 {
+                probed_index += 1;
+
+                if probed_index >= self.capacity as usize {
+                    probed_index = 0;
+                }
+                //If we are at an index that matches the DCE we're looking
+                //for, then increment the hits array at that index and stop
+                if self.container[probed_index] == value{
+                    self.hits[probed_index] += 1;
+                    break;
+                }
+            }
+        }
+    }
+
+    pub fn get_index(&mut self, value: u64) -> usize {
+        let hv = value % self.capacity;
+        let hv_index = hv as usize;
+        let mut probed_index = hv_index;
+
+        // return if it's in the index calculated
+        if self.container[probed_index] == value{
+            return probed_index;
+        }
+        //otherwise we need to linear probe until
+        //the DCE is found at subsequent indices
+        else{
+            while self.container[probed_index] != 0 {
+                //loop to increment index, looking for the
+                //index that actually contains the given DCE
+                probed_index += 1;
+
+                if probed_index >= self.capacity as usize {
+                    probed_index = 0;
+                }
+
+                if self.container[probed_index] == value{
+                    return probed_index;
+                }
+            }
+        }
+        return probed_index;
+    }
+----
+
+I could find no use for the results vector as the `search::Search` object maintains an internal vector of hit counts.
+Proposed changes remove this vector:
+
+----
+    let timer = Instant::now();
+    let mut rna = get_reader(&args.rna)?;
+    writeln!(out_file, "File: {}", &args.rna)?;
+
+    let mut search = Search::new(needles);
+    while let Some(rec) = rna.iter_record()? {
+        search.search(rec.seq());
+    }
+----
+
+New `search` directly increments hit counts:
+
+----
+    pub fn search(
+        &mut self,
+        sequence: &str,
+        //id: &str,
+        //results: &mut Vec<SearchResult>,
+    ) {
+        let sequence: Vec<char> = sequence.chars().collect();
+        // Reset in preparation for the search.
+        self.haystack_index = 0;
+        self.haystack_size = sequence.len();
+        self.haystack_window = 0;
+        self.rev_haystack = 0;
+        self.start_index = 0;
+
+        // If we don't have at least 32 nucleotides remaining, we
+        // know we are finished.
+        'search: while self.start_index <= self.haystack_size - 32 {
+            // Bootstrap by encoding the next 31 nucleotides if we
+            // haven't done it yet. This happens at the beginning of
+            // a search and immediately after a bad character has
+            // been encountered. We can ignore the possibility of a
+            // missing alphabet character since we've already dealt
+            // with the other (valid) possibility above.
+            while self.haystack_index < self.start_index + 32 {
+                //let next_char = haystack.characters[self.haystack_index];
+                let mask = encode_char(sequence[self.haystack_index]);
+
+                // If we find a bad character, we basically just restart
+                // the search from the next character.
+                if mask == 255 {
+                    self.start_index = self.haystack_index + 1;
+                    self.haystack_index = self.start_index;
+                    continue 'search;
+                }
+
+                self.haystack_window = (self.haystack_window << 2) | mask;
+                let new_mask = !mask;
+                self.rev_haystack =
+                    (self.rev_haystack >> 2) | (new_mask << 62);
+                self.haystack_index += 1;
+            }
+
+            // Bump the start index in order to slide the window one
+            // nucleotide to the right.
+            self.start_index += 1;
+            self.needles.inc_hits(self.haystack_window);
+            self.needles.inc_hits(self.rev_haystack);
+        }
+    }
+----
+
+The proposed code uses only the `inc_hits` function.
+
+I played around with a `pure_search` that uses a https://docs.rs/dashmap/latest/dashmap/[DashMap] for "a concurrent associative array/hashmap in Rust" that is safe to share between threads:
+
+----
+    pub fn pure_search(
+        &self,
+        needles: &Hash,
+        sequence: &str,
+        hits: &DashMap<u64, u32>,
+    ) {
+        let sequence: Vec<char> = sequence.chars().collect();
+        let haystack_size = sequence.len();
+        let mut haystack_index = 0;
+        let mut haystack_window = 0;
+        let mut rev_haystack = 0;
+        let mut start_index = 0;
+
+        // If we don't have at least 32 nucleotides remaining, we
+        // know we are finished.
+        'search: while start_index <= haystack_size - 32 {
+            // Bootstrap by encoding the next 31 nucleotides if we
+            // haven't done it yet. This happens at the beginning of
+            // a search and immediately after a bad character has
+            // been encountered. We can ignore the possibility of a
+            // missing alphabet character since we've already dealt
+            // with the other (valid) possibility above.
+            while haystack_index < start_index + 32 {
+                let mask = encode_char(sequence[haystack_index]);
+
+                // If we find a bad character, we basically just restart
+                // the search from the next character.
+                if mask == 255 {
+                    start_index = haystack_index + 1;
+                    haystack_index = start_index;
+                    continue 'search;
+                }
+
+                haystack_window = (haystack_window << 2) | mask;
+                let new_mask = !mask;
+                rev_haystack = (rev_haystack >> 2) | (new_mask << 62);
+                haystack_index += 1;
+            }
+
+            // Bump the start index in order to slide the window one
+            // nucleotide to the right.
+            start_index += 1;
+
+            for val in &[haystack_window, rev_haystack] {
+                if let Some(_index) = needles.find(*val) {
+                    if let Some(mut count) = hits.get_mut(val) {
+                        *count += 1;
+                    } else {
+                        hits.insert(*val, 1);
+                    }
+                }
+            }
+        }
+    }
+----
+
+== Printing Results
+
+The original code:
+
+----
+for i in 0..search.needles.hits.len() {
+    if search.needles.container[i] != 0 {
+        let count = search.needles.hits[i];
+        if count != 0 {
+            let names = map.get_vec(&search.needles.container[i]); <1>
+            for j in names { <2>
+                for i in j{ <3>
+                    //println!("{}   {}", i, count);
+                    _writer.write_fmt(format_args!("{}\t{}\n", i, count)).unwrap();
+                }
+            }
+        }
+    }
+}
+----
+
+<1> Call https://docs.rs/multimap/latest/multimap/struct.MultiMap.html#method.get_vec[MultiMap::get_vec] to find the list of DCE names associated with the found sequence hash. This returns `Option<Vec>`.
+<2> Call a `for` loop, which requires an iterable. This line runs only because an `Iterator` over an `Option` acts like a vector with either 1 value (a `Some`) or nothing (a `None`). Uses the poorly chosen variable name `j`.
+<3> This `for` loop now iterates over the names, now reusing the `i` variable from the first `for` loop.
+
+Proposed changes:
+
+----
+for (i, count) in search.needles.hits.into_iter().enumerate() {
+    if count > 0 {
+        if let Some(names) = map.get_vec(&search.needles.container[i]) {
+            for name in names {
+                writeln!(out_file, "{name}\t{count}")?;
+            }
+        }
+    }
+}
+----
+
+== Concurrent Read Processing
+
+I had an idea to use `rayon` to process the reads in parallel.
+I've had some success using https://docs.rs/rayon/latest/rayon/iter/trait.IntoParallelIterator.html#tymethod.into_par_iter[`into_par_iter`] (into parallel iterator), which can be used on an `Iterator`.
+
+The `kseq` library does not implement the https://doc.rust-lang.org/std/iter/trait.Iterator.html[`Iterator`] trait.
+I thought it might be as simple as implementing https://doc.rust-lang.org/std/iter/trait.Iterator.html#associatedtype.Item[next], which returns an `Option`.
+The https://docs.rs/kseq/0.5.3/kseq/record/struct.Reader.html#method.iter_record[`iter_record`] function returns a `Result<Option<Fastx>>`:
+
+----
+while let Some(rec) = rna.iter_record()? {
+    ....
+}
+----
+
+NOTE: Cf https://docs.rs/fallible-iterator/latest/fallible_iterator/[fallible_iterator]
+
+Apart from not understanding how to apply the required lifetimes in Rust to properly share the data, I believe that `rayon` requires the iterator to be partionable such that different parts can be given to different threads.
+This would require reading the input files into memory, which is not desirable for many reasons.
+I still wonder if there could be some way to read the RNA records using the given interface and push the processing of reads into different threads, but that's a later problem.
+This would require a "pure" implementation of the search, one that does not mutate a shared `Search` object and that could use something like `DashMap` for concurrent writing to a hash.
+
+== Testing
+
+There were some unit tests in the original code I found useful with some input files in a _fixtures_ directory.
+Proposed changes include a _tests_ directory with the following structure:
+
+----
+tests
+├── cli.rs <1>
+├── inputs <2>
+│   ├── dce.fa
+│   ├── dna.fasta
+│   ├── dna.fastq
+│   ├── human.fa
+│   ├── human.fasta
+│   ├── human.fastq
+│   ├── human.fq
+│   ├── mk_fastq.py
+│   ├── rna-100k.fasta
+│   ├── rna-100k.fastq
+│   ├── rna-50k.fasta
+│   ├── rna-50k.fastq
+│   ├── rna-50k.fastq.gz
+│   └── rna.fa
+└── outputs <3>
+    ├── full.txt
+    ├── out-100k-fasta.txt
+    ├── out-100k-fastq.txt
+    ├── out-100k.txt
+    ├── out-50k-fasta.txt
+    └── out-50k-fastq.txt
+----
+
+<1> Integration tests
+<2> Input files
+<3> Files containing the expected output
+
+I used various inputs with the original code and captured the outputs for testing my new code.
+Integration tests use `assert_cmd::Command::cargo_bin` to run the binary in the current crate with various inputs and compare to the expected outputs:
+
+----
+use anyhow::Result;
+use assert_cmd::Command;
+use predicates::prelude::*;
+use pretty_assertions::assert_eq;
+use rand::{distributions::Alphanumeric, Rng};
+use std::{fs, path::Path};
+use tempfile::NamedTempFile;
+
+const PRG: &str = "tallyman";
+const DNA_FA: &str = "tests/inputs/dna.fasta";
+const DNA_FQ: &str = "tests/inputs/dna.fastq";
+const RNA_FA_50K: &str = "tests/inputs/rna-50k.fasta";
+const RNA_FQ_50K: &str = "tests/inputs/rna-50k.fastq";
+const RNA_FA_100K: &str = "tests/inputs/rna-100k.fasta";
+const RNA_FQ_100K: &str = "tests/inputs/rna-100k.fastq";
+const OUT_FA_50K: &str = "tests/outputs/out-50k-fasta.txt";
+const OUT_FA_100K: &str = "tests/outputs/out-100k-fasta.txt";
+const OUT_FQ_50K: &str = "tests/outputs/out-50k-fastq.txt";
+const OUT_FQ_100K: &str = "tests/outputs/out-100k-fastq.txt";
+
+// --------------------------------------------------
+fn gen_bad_file() -> String {
+    loop {
+        let filename = rand::thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(7)
+            .map(char::from)
+            .collect();
+
+        if fs::metadata(&filename).is_err() {
+            return filename;
+        }
+    }
+}
+
+// --------------------------------------------------
+#[test]
+fn dies_bad_rna_file() -> Result<()> {
+    let bad = gen_bad_file();
+    let expected = format!("{bad}: .* [(]os error 2[)]");
+    Command::cargo_bin(PRG)?
+        .args(["-r", &bad, "-d", DNA_FA])
+        .assert()
+        .failure()
+        .stderr(predicate::str::is_match(expected)?);
+    Ok(())
+}
+
+// --------------------------------------------------
+#[test]
+fn dies_bad_dna_file() -> Result<()> {
+    let bad = gen_bad_file();
+    let expected = format!("{bad}: .* [(]os error 2[)]");
+    Command::cargo_bin(PRG)?
+        .args(["-d", &bad, "-r", RNA_FA_50K])
+        .assert()
+        .failure()
+        .stderr(predicate::str::is_match(expected)?);
+    Ok(())
+}
+
+// --------------------------------------------------
+fn run(rna: &str, dna: &str, expected_file: &str) -> Result<()> {
+    let outfile = NamedTempFile::new()?;
+    let outpath = &outfile.path().to_str().unwrap();
+    Command::cargo_bin(PRG)?
+        .args(["-d", dna, "-r", rna, "-o", &outpath])
+        .assert()
+        .success();
+
+    assert!(Path::new(outpath).exists());
+
+    let expected = fs::read_to_string(expected_file)?;
+    let actual = fs::read_to_string(outpath)?;
+    assert_eq!(&actual, &expected);
+    Ok(())
+}
+
+// --------------------------------------------------
+#[test]
+fn run_50k_fasta() -> Result<()> {
+    run(RNA_FA_50K, DNA_FA, OUT_FA_50K)
+}
+
+// --------------------------------------------------
+#[test]
+fn run_50k_fastq() -> Result<()> {
+    run(RNA_FQ_50K, DNA_FQ, OUT_FQ_50K)
+}
+
+// --------------------------------------------------
+#[test]
+fn run_100k_fasta() -> Result<()> {
+    run(RNA_FA_100K, DNA_FA, OUT_FA_100K)
+}
+
+// --------------------------------------------------
+#[test]
+fn run_100k_fastq() -> Result<()> {
+    run(RNA_FQ_100K, DNA_FQ, OUT_FQ_100K)
+}
+----
+
+Test output:
+
+----
+$ cargo test
+warning: tallyman v0.3.0 (/Users/kyclark/work/wheelerlab/tallyman) ignoring
+invalid dependency `cargo-instruments` which is missing a lib target <1>
+   Compiling tallyman v0.3.0 (/Users/kyclark/work/wheelerlab/tallyman)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.54s
+     Running unittests src/main.rs (target/debug/deps/tallyman-7bbad0a5847b0ed3)
+
+running 6 tests
+test alphabet::test::test_encode_char ... ok
+test alphabet::test::test_encode_invalid_char ... ok
+test hash::test::test_add_to_hash ... ok
+test compress::tests::new_compressed_seq ... ok
+test hash::test::test_contains_value ... ok
+test hash::test::test_create_hash ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;
+finished in 0.00s
+
+     Running tests/cli.rs (target/debug/deps/cli-a5896bdd4f3d8e1a)
+
+running 6 tests
+test dies_bad_dna_file ... ok
+test dies_bad_rna_file ... ok
+test run_50k_fasta ... ok
+test run_50k_fastq ... ok
+test run_100k_fasta ... ok
+test run_100k_fastq ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;
+finished in 1.23s
+----
+
+<1> I just noticed this problem that may explain why I get nothing from `instruments`.
+
+== Input Formats
+
+One reason I chose `kseq` over https://docs.rs/bio/latest/bio/io/index.html[`bio::io`] is because I would have had to figure out if the input files are FASTQ or FASTA to use the proper parser, whereas `kseq` parses both formats automagically while also handling zipped input:
+
+----
+$ cargo run -- -d tests/inputs/dna.fasta -r tests/inputs/rna-50k.fastq.gz -o -
+File: tests/inputs/rna-50k.fastq.gz
+testSeq6	1
+testSeq18	1
+testSeq3	1
+testSeq20	1
+testSeq12	1
+testSeq16	1
+testSeq14	1
+testSeq17	1
+testSeq4	1
+----
+
+== Profiling
+
+The original _Makefile_ includes a recipe for using `cachegrind` to profile:
+
+----
+.PHONY: cachegrind
+cachegrind: fixtures
+    valgrind --tool=cachegrind ./$(REL_EXE) $(FIXTURES) /dev/null
+----
+
+`valgrind` does not run on macOS, so I ran it on the HPC.
+Following is the output.
+I have no idea how to interpret this:
+
+----
+(elgato) [junonia@/xdisk/twheeler/kyclark/tallyman]$ make cachegrind
+valgrind --tool=cachegrind ./target/release/tallyman -r fixtures/test-rna.fasta -d fixtures/test-dna.fasta -o /dev/null
+==22815== Cachegrind, a cache and branch-prediction profiler
+==22815== Copyright (C) 2002-2017, and GNU GPL'd, by Nicholas Nethercote et al.
+==22815== Using Valgrind-3.15.0 and LibVEX; rerun with -h for copyright info
+==22815== Command: ./target/release/tallyman -r fixtures/test-rna.fasta -d fixtures/test-dna.fasta -o /dev/null
+==22815==
+--22815-- warning: L3 cache found, using its data for the LL simulation.
+==22815==
+==22815== I   refs:      9,147,548,108
+==22815== I1  misses:            7,688
+==22815== LLi misses:            2,489
+==22815== I1  miss rate:          0.00%
+==22815== LLi miss rate:          0.00%
+==22815==
+==22815== D   refs:      2,812,152,730  (1,748,874,291 rd   + 1,063,278,439 wr)
+==22815== D1  misses:       14,541,563  (   13,985,846 rd   +       555,717 wr)
+==22815== LLd misses:            9,908  (        5,144 rd   +         4,764 wr)
+==22815== D1  miss rate:           0.5% (          0.8%     +           0.1%  )
+==22815== LLd miss rate:           0.0% (          0.0%     +           0.0%  )
+==22815==
+[junonia@/xdisk/twheeler/kyclark/tallyman]$
+==22815== LL misses:            12,397  (        7,633 rd   +         4,764 wr)
+==22815== LL miss rate:            0.0% (          0.0%     +           0.0%  )
+----
+
+For profiling on my laptop, I found `instruments` from Apple, and there are a few recipes in the _Makefile_ to profile IO, memory usage, and time.
+Cf https://lib.rs/crates/cargo-instruments.
+
+I cannot get it to work (see earlier note about library target missing):
+
+----
+$ make alloc
+cargo instruments -t Allocations --release -- -r fixtures/test-rna.fasta -d
+fixtures/test-dna.fasta -o /dev/null
+    Finished release [optimized + debuginfo] target(s) in 0.27s
+   Profiling target/release/tallyman with template 'Allocations'
+      Failed xctrace exited with error.
+stdout: Starting recording with the Allocations template. Launching process: tallyman.
+Ctrl-C to stop the recording
+Recording failed with errors. Saving output file...
+Output file saved as: tallyman_Allocations_2024-06-24_133502-861.trace
+stderr: Run issues were detected (trace is still ready to be viewed):
+* [Error] Failed to start the recording: ktrace cannot trace the system under
+  Rosetta translation
+
+* [Error] Unexpected failure: Couriers have returned unexpectedly.
+
+* [Error] Unexpected failure: Data source agent failed to arm.
+
+* [Error] Failed to attach to target process
+
+    * [Error] Failed to load library
+    * /Applications/Xcode.app/Contents/SharedFrameworks/DVTInstrumentsFoundation.framework/Resources/liboainject.dylib
+    * because target process 8182 appears to have exited
+----
+
+== Benchmarking
+
+I used https://github.com/sharkdp/hyperfine[hyperfine] to compare the original code to mine and found them to be comparable in speed (only three runs):
+
+----
+Benchmark 1: ./bin/tallyman_orig
+/xdisk/twheeler/cgoubert/GTEx_DCE/the_count/brain_cortex/SRR1081741.fasta
+/xdisk/twheeler/cgoubert/GTEx_DCE/the_count/Extracted-DCEs/homo_sapiens.IREs-removed.fa
+/dev/null
+  Time (mean ± σ):     134.522 s ±  0.119 s    [User: 129.731 s, System: 4.399 s]
+  Range (min … max):   134.443 s … 134.660 s    3 runs
+
+Benchmark 1: ./bin/tallyman_kseq -v -r
+/xdisk/twheeler/cgoubert/GTEx_DCE/the_count/brain_cortex/SRR1081741.fasta -d
+/xdisk/twheeler/cgoubert/GTEx_DCE/the_count/Extracted-DCEs/homo_sapiens.IREs-removed.fa
+-o /dev/null
+  Time (mean ± σ):     130.366 s ±  4.923 s    [User: 126.189 s, System: 3.782 s]
+  Range (min … max):   127.353 s … 136.048 s    3 runs
+----
