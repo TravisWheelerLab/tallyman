@@ -2,10 +2,12 @@ use crate::{compress::compress_seq, search::Search};
 use anyhow::{anyhow, bail, Result};
 use clap::Parser;
 use kseq::parse_path;
+use rayon::prelude::*;
 use std::{
     collections::HashMap,
-    fs::File,
-    io::{self, Write},
+    fs::{self, File},
+    io::Write,
+    path::Path,
     time::Instant,
 };
 
@@ -17,17 +19,17 @@ pub mod search;
 #[derive(Debug, Parser)]
 #[command(author, version, about)]
 struct Args {
-    /// RNA file
-    #[arg(long, short, value_name = "RNA")]
-    rna: String,
-
     /// DNA file
-    #[arg(long, short, value_name = "DNA")]
+    #[arg(short, long, value_name = "DNA")]
     dna: String,
 
-    /// Output file
-    #[arg(long, short, value_name = "OUT", default_value = "output.txt")]
-    output: String,
+    /// RNA file
+    #[arg(short, long, value_name = "RNA", num_args(1..))]
+    rna: Vec<String>,
+
+    /// Output directory
+    #[arg(short, long, value_name = "OUTDIR", default_value = "out")]
+    outdir: String,
 
     /// Verbose output
     #[arg(long, short)]
@@ -84,34 +86,51 @@ fn run(args: Args) -> Result<()> {
         bail!("No needles");
     }
 
-    let mut out_file: Box<dyn Write> = if args.output == *"-" {
-        Box::new(io::stdout())
-    } else {
-        Box::new(File::create(args.output)?)
-    };
+    let outdir = Path::new(&args.outdir);
 
-    // Search through each of the RNA sequences, reusing
-    // the sequence and search results instances.
-    let timer = Instant::now();
-    let mut rna = get_reader(&args.rna)?;
-    writeln!(out_file, "File: {}", &args.rna)?;
-
-    let mut search = Search::new(&needles)?;
-    while let Some(rec) = rna.iter_record()? {
-        search.search(rec.seq());
+    if !outdir.exists() {
+        fs::create_dir_all(&outdir)?;
     }
 
-    if args.verbose {
-        eprintln!("Time to search RNA sequences: {:?}", timer.elapsed());
-    }
+    args.rna
+        .into_par_iter()
+        .try_for_each(|filename| -> Result<()> {
+            let basename = Path::new(&filename)
+                .file_name()
+                .ok_or(anyhow!("basename"))?;
 
-    for (i, count) in search.needles.hits.into_iter().enumerate() {
-        if count > 0 {
-            if let Some(name) = map.get(&search.needles.key[i]) {
-                writeln!(out_file, "{name}\t{count}")?;
+            let mut basename = basename.to_os_string();
+            basename.push(".txt");
+            let out_path = &outdir.join(basename);
+            let mut out_file = File::create(out_path)?;
+
+            // Search through each of the RNA sequences, reusing
+            // the sequence and search results instances.
+            let timer = Instant::now();
+            let mut rna: kseq::Paths = get_reader(&filename)?;
+            writeln!(out_file, "File: {}", &filename)?;
+
+            let mut search: Search = Search::new(&needles)?;
+            while let Some(rec) = rna.iter_record()? {
+                search.search(rec.seq());
             }
-        }
-    }
+
+            if args.verbose {
+                eprintln!(
+                    r#"Time to search "{filename}": {:?}"#,
+                    timer.elapsed()
+                );
+            }
+
+            for (i, count) in search.needles.hits.into_iter().enumerate() {
+                if count > 0 {
+                    if let Some(name) = map.get(&search.needles.key[i]) {
+                        writeln!(out_file, "{name}\t{count}")?;
+                    }
+                }
+            }
+            Ok(())
+        })?;
 
     Ok(())
 }

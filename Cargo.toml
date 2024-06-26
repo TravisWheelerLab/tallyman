@@ -6,12 +6,10 @@ authors = ["George Lesica <george@lesica.com>",
 edition = "2021"
 
 [dependencies]
-anyhow = "1"
+anyhow = "1.0.86"
 kseq = "0.5"
-clap = { version = "4", features = ["derive"] }
-multimap = "0.8"
+clap = { version = "4.5.7", features = ["derive"] }
 rayon = "1.10.0"
-dashmap = "5.5.3"
 
 [dev-dependencies]
 assert_cmd = "2"
@@ -19,7 +17,6 @@ predicates = "3"
 pretty_assertions = "1"
 rand = "0.8"
 tempfile = "3"
-cargo-instruments = "0.4.9"
 
 [profile.release]
 debug = true

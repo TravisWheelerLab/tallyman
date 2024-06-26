@@ -14,4 +14,4 @@ cachegrind.out*
 /venv/
 
 *.swp
-output.txt
+out/
