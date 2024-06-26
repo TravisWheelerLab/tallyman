@@ -31,6 +31,10 @@ struct Args {
     #[arg(short, long, value_name = "OUTDIR", default_value = "out")]
     outdir: String,
 
+    /// Threads
+    #[arg(short, long, value_name = "THREADS")]
+    threads: Option<usize>,
+
     /// Verbose output
     #[arg(long, short)]
     verbose: bool,
@@ -46,6 +50,14 @@ fn main() {
 
 // --------------------------------------------------
 fn run(args: Args) -> Result<()> {
+    // Optionally set num of threads, default will use all available
+    if let Some(num) = args.threads {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(num)
+            .build_global()
+            .unwrap();
+    }
+
     // Load the DCE sequences and compress them,
     // make the multimap for post-processing
     let timer = Instant::now();
