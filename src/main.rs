@@ -19,13 +19,13 @@ pub mod search;
 #[derive(Debug, Parser)]
 #[command(author, version, about)]
 struct Args {
-    /// DNA file
-    #[arg(short, long, value_name = "DNA")]
-    dna: String,
+    /// Junctions file
+    #[arg(short, long, value_name = "JUNCTIONS")]
+    junctions: String,
 
-    /// RNA file
-    #[arg(short, long, value_name = "RNA", num_args(1..))]
-    rna: Vec<String>,
+    /// Reads file(s)
+    #[arg(short, long, value_name = "READS", num_args(1..), required(true))]
+    reads: Vec<String>,
 
     /// Output directory
     #[arg(short, long, value_name = "OUTDIR", default_value = "out")]
@@ -62,16 +62,16 @@ fn run(args: Args) -> Result<()> {
     // make the multimap for post-processing
     let timer = Instant::now();
     let mut map = HashMap::new();
-    let mut needles = vec![];
-    let mut dna = get_reader(&args.dna)?;
+    let mut junctions = vec![];
+    let mut junctions_file = get_reader(&args.junctions)?;
 
-    while let Some(rec) = dna.iter_record()? {
+    while let Some(rec) = junctions_file.iter_record()? {
         match compress_seq(rec.seq()) {
             Some(comp) => {
-                needles.push(comp);
+                junctions.push(comp);
                 if map.get(&comp).is_some() {
                     eprintln!(
-                        r#"WARNING: "{}" ({}) duplicated"#,
+                        r#"WARNING: Junction sequence "{}" ({}) duplicated"#,
                         rec.seq(),
                         rec.head()
                     );
@@ -80,7 +80,7 @@ fn run(args: Args) -> Result<()> {
                 }
             }
             _ => eprintln!(
-                r#"DNA sequence "{}" ({}) rejected"#,
+                r#"Junction sequence "{}" ({}) rejected"#,
                 rec.seq(),
                 rec.head()
             ),
@@ -94,8 +94,8 @@ fn run(args: Args) -> Result<()> {
         );
     }
 
-    if needles.is_empty() {
-        bail!("No needles");
+    if junctions.is_empty() {
+        bail!("No junctions");
     }
 
     let outdir = Path::new(&args.outdir);
@@ -104,10 +104,10 @@ fn run(args: Args) -> Result<()> {
         fs::create_dir_all(&outdir)?;
     }
 
-    args.rna
+    args.reads
         .into_par_iter()
-        .try_for_each(|filename| -> Result<()> {
-            let basename = Path::new(&filename)
+        .try_for_each(|reads_file| -> Result<()> {
+            let basename = Path::new(&reads_file)
                 .file_name()
                 .ok_or(anyhow!("basename"))?;
 
@@ -119,24 +119,24 @@ fn run(args: Args) -> Result<()> {
             // Search through each of the RNA sequences, reusing
             // the sequence and search results instances.
             let timer = Instant::now();
-            let mut rna: kseq::Paths = get_reader(&filename)?;
-            writeln!(out_file, "File: {}", &filename)?;
+            let mut reads: kseq::Paths = get_reader(&reads_file)?;
+            writeln!(out_file, "File: {}", &reads_file)?;
 
-            let mut search: Search = Search::new(&needles)?;
-            while let Some(rec) = rna.iter_record()? {
+            let mut search: Search = Search::new(&junctions)?;
+            while let Some(rec) = reads.iter_record()? {
                 search.search(rec.seq());
             }
 
             if args.verbose {
                 eprintln!(
-                    r#"Time to search "{filename}": {:?}"#,
+                    r#"Time to search "{reads_file}": {:?}"#,
                     timer.elapsed()
                 );
             }
 
-            for (i, count) in search.needles.hits.into_iter().enumerate() {
+            for (i, count) in search.junctions.hits.into_iter().enumerate() {
                 if count > 0 {
-                    if let Some(name) = map.get(&search.needles.key[i]) {
+                    if let Some(name) = map.get(&search.junctions.key[i]) {
                         writeln!(out_file, "{name}\t{count}")?;
                     }
                 }

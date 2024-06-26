@@ -35,11 +35,11 @@ fn gen_bad_file() -> String {
 
 // --------------------------------------------------
 #[test]
-fn dies_bad_rna_file() -> Result<()> {
+fn dies_bad_reads_file() -> Result<()> {
     let bad = gen_bad_file();
     let expected = format!("{bad}: .* [(]os error 2[)]");
     Command::cargo_bin(PRG)?
-        .args(["-r", &bad, "-d", DNA_FA])
+        .args(["-r", &bad, "-j", DNA_FA])
         .assert()
         .failure()
         .stderr(predicate::str::is_match(expected)?);
@@ -48,11 +48,11 @@ fn dies_bad_rna_file() -> Result<()> {
 
 // --------------------------------------------------
 #[test]
-fn dies_bad_dna_file() -> Result<()> {
+fn dies_bad_junction_file() -> Result<()> {
     let bad = gen_bad_file();
     let expected = format!("{bad}: .* [(]os error 2[)]");
     Command::cargo_bin(PRG)?
-        .args(["-d", &bad, "-r", RNA_FA_50K])
+        .args(["-j", &bad, "-r", RNA_FA_50K])
         .assert()
         .failure()
         .stderr(predicate::str::is_match(expected)?);
@@ -60,31 +60,35 @@ fn dies_bad_dna_file() -> Result<()> {
 }
 
 // --------------------------------------------------
-fn run(rna_files: &[&str], dna: &str, expected_files: &[&str]) -> Result<()> {
+fn run(
+    read_files: &[&str],
+    junction_file: &str,
+    expected_files: &[&str],
+) -> Result<()> {
     // outdir will be removed when var leaves scope
     let outdir = TempDir::new()?;
     let mut args: Vec<String> = vec![
-        "-d".to_string(),
-        dna.to_string(),
+        "-j".to_string(),
+        junction_file.to_string(),
         "-o".to_string(),
         outdir.path().to_string_lossy().to_string(),
         "-r".to_string(),
     ];
 
-    for file in rna_files {
-        args.push(file.to_string());
+    for read_file in read_files {
+        args.push(read_file.to_string());
     }
 
     Command::cargo_bin(PRG)?.args(&args).assert().success();
 
-    for (rna_file, expected_file) in zip(rna_files, expected_files) {
-        // Output file is RNA basename + ".txt"
-        let mut rna_base = Path::new(&rna_file)
+    for (read_file, expected_file) in zip(read_files, expected_files) {
+        // Output file is read basename + ".txt"
+        let mut read_base = Path::new(&read_file)
             .file_name()
             .ok_or(anyhow!("No basename"))?
             .to_os_string();
-        rna_base.push(".txt");
-        let outpath = &outdir.path().join(&rna_base);
+        read_base.push(".txt");
+        let outpath = &outdir.path().join(&read_base);
         assert!(outpath.exists());
 
         let expected = fs::read_to_string(expected_file)?;

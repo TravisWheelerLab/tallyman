@@ -7,24 +7,24 @@ pub struct Search {
     haystack_index: usize,
     haystack_size: usize,
     haystack_window: u64,
-    pub needles: Hash,
+    pub junctions: Hash,
     start_index: usize,
 }
 
 impl Search {
-    pub fn new(needles: &Vec<u64>) -> Result<Search> {
-        let mut needles_hash =
-            Hash::new(needles.len() * HASH_CAPACITY_MULTIPLE);
+    pub fn new(junctions: &Vec<u64>) -> Result<Search> {
+        let mut junction_hash =
+            Hash::new(junctions.len() * HASH_CAPACITY_MULTIPLE);
 
-        for needle in needles {
-            needles_hash.add(*needle)?;
+        for seq in junctions {
+            junction_hash.add(*seq)?;
         }
 
         Ok(Search {
             haystack_index: 0,
             haystack_size: 0,
             haystack_window: 0,
-            needles: needles_hash,
+            junctions: junction_hash,
             start_index: 0,
         })
     }
@@ -65,7 +65,7 @@ impl Search {
             // Bump the start index in order to slide the window one
             // nucleotide to the right.
             self.start_index += 1;
-            let _ = self.needles.inc_hits(self.haystack_window);
+            let _ = self.junctions.inc_hits(self.haystack_window);
         }
     }
 }
@@ -76,38 +76,38 @@ mod test {
 
     #[test]
     fn test_search() {
-        let needles = vec![
+        let junctions = vec![
             compress_seq(&"T".repeat(32)).unwrap(),
             compress_seq(&"G".repeat(32)).unwrap(),
         ];
-        let mut search = Search::new(&needles).unwrap();
+        let mut search = Search::new(&junctions).unwrap();
         search.search("AAGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGAA");
 
-        let res = search.needles.get_hits(needles[0]);
+        let res = search.junctions.get_hits(junctions[0]);
         assert_eq!(res, Some(0));
 
-        let res = search.needles.get_hits(needles[1]);
+        let res = search.junctions.get_hits(junctions[1]);
         assert_eq!(res, Some(1));
 
         let missing = compress_seq(&"C".repeat(32)).unwrap();
-        let res = search.needles.get_hits(missing);
+        let res = search.junctions.get_hits(missing);
         assert!(res.is_none());
     }
 
     #[test]
     fn test_search_with_n() {
-        let needles = vec![
+        let junctions = vec![
             compress_seq(&"ACGT".repeat(8)).unwrap(),
             compress_seq(&"G".repeat(32)).unwrap(),
         ];
-        let mut search = Search::new(&needles).unwrap();
+        let mut search = Search::new(&junctions).unwrap();
 
         search.search("AANACGTACGTACGTACGTACGTACGTACGTACGTNNAA");
 
-        let res = search.needles.get_hits(needles[0]);
+        let res = search.junctions.get_hits(junctions[0]);
         assert_eq!(res, Some(1));
 
-        let res = search.needles.get_hits(needles[1]);
+        let res = search.junctions.get_hits(junctions[1]);
         assert_eq!(res, Some(0));
     }
 }
