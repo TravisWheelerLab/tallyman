@@ -17,8 +17,10 @@ OUT_FA_100K="tests/outputs/out-100k-fasta.txt"
 OUT_FQ_50K="tests/outputs/out-50k-fastq.txt"
 OUT_FQ_100K="tests/outputs/out-100k-fastq.txt"
 
-$PRG -d $DNA_FA -r $RNA_FA_50K  -o $OUT_FA_50K
-$PRG -d $DNA_FA -r $RNA_FA_100K -o $OUT_FA_100K
+OUT_DIR="tests/outputs"
 
-$PRG -d $DNA_FA -r $RNA_FQ_50K  -o $OUT_FQ_50K
-$PRG -d $DNA_FA -r $RNA_FQ_100K -o $OUT_FQ_100K
+$PRG -j $DNA_FA -r $RNA_FA_50K  -o $OUT_DIR
+$PRG -j $DNA_FA -r $RNA_FA_100K -o $OUT_DIR
+
+$PRG -j $DNA_FA -r $RNA_FQ_50K  -o $OUT_DIR
+$PRG -j $DNA_FA -r $RNA_FQ_100K -o $OUT_DIR

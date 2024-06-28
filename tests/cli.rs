@@ -1,22 +1,30 @@
 use anyhow::{anyhow, Result};
 use assert_cmd::Command;
+use itertools::izip;
 use predicates::prelude::*;
 use pretty_assertions::assert_eq;
 use rand::{distributions::Alphanumeric, Rng};
-use std::{fs, iter::zip, path::Path};
+use std::{fs, path::Path};
 use tempfile::TempDir;
 
 const PRG: &str = "tallyman";
 const DNA_FA: &str = "tests/inputs/dna.fasta";
 const DNA_FQ: &str = "tests/inputs/dna.fastq";
+
 const RNA_FA_50K: &str = "tests/inputs/rna-50k.fasta";
 const RNA_FQ_50K: &str = "tests/inputs/rna-50k.fastq";
 const RNA_FA_100K: &str = "tests/inputs/rna-100k.fasta";
 const RNA_FQ_100K: &str = "tests/inputs/rna-100k.fastq";
-const OUT_FA_50K: &str = "tests/outputs/out-50k-fasta.txt";
-const OUT_FA_100K: &str = "tests/outputs/out-100k-fasta.txt";
-const OUT_FQ_50K: &str = "tests/outputs/out-50k-fastq.txt";
-const OUT_FQ_100K: &str = "tests/outputs/out-100k-fastq.txt";
+
+const OUT_FA_50K: &str = "tests/outputs/rna-50k.fasta.txt";
+const OUT_FA_100K: &str = "tests/outputs/rna-100k.fasta.txt";
+const OUT_FA_50K_COUNT: &str = "tests/outputs/rna-50k.fasta.count";
+const OUT_FA_100K_COUNT: &str = "tests/outputs/rna-100k.fasta.count";
+
+const OUT_FQ_50K: &str = "tests/outputs/rna-50k.fastq.txt";
+const OUT_FQ_100K: &str = "tests/outputs/rna-100k.fastq.txt";
+const OUT_FQ_50K_COUNT: &str = "tests/outputs/rna-50k.fastq.count";
+const OUT_FQ_100K_COUNT: &str = "tests/outputs/rna-100k.fastq.count";
 
 // --------------------------------------------------
 fn gen_bad_file() -> String {
@@ -64,9 +72,11 @@ fn run(
     read_files: &[&str],
     junction_file: &str,
     expected_files: &[&str],
+    expected_counts: &[&str],
 ) -> Result<()> {
     // outdir will be removed when var leaves scope
     let outdir = TempDir::new()?;
+
     let mut args: Vec<String> = vec![
         "-j".to_string(),
         junction_file.to_string(),
@@ -81,17 +91,28 @@ fn run(
 
     Command::cargo_bin(PRG)?.args(&args).assert().success();
 
-    for (read_file, expected_file) in zip(read_files, expected_files) {
+    for (read_file, expected_file, expected_count) in
+        izip!(read_files, expected_files, expected_counts)
+    {
         // Output file is read basename + ".txt"
-        let mut read_base = Path::new(&read_file)
+        let read_base = Path::new(&read_file)
             .file_name()
             .ok_or(anyhow!("No basename"))?
             .to_os_string();
-        read_base.push(".txt");
-        let outpath = &outdir.path().join(&read_base);
+        let mut data_basename = read_base.clone();
+        data_basename.push(".txt");
+        let outpath = &outdir.path().join(&data_basename);
         assert!(outpath.exists());
 
         let expected = fs::read_to_string(expected_file)?;
+        let actual = fs::read_to_string(outpath)?;
+        assert_eq!(&actual, &expected);
+
+        let mut count_basename = read_base.clone();
+        count_basename.push(".count");
+        let outpath = &outdir.path().join(&count_basename);
+        assert!(outpath.exists());
+        let expected = fs::read_to_string(expected_count)?;
         let actual = fs::read_to_string(outpath)?;
         assert_eq!(&actual, &expected);
     }
@@ -102,25 +123,25 @@ fn run(
 // --------------------------------------------------
 #[test]
 fn run_50k_fasta() -> Result<()> {
-    run(&[RNA_FA_50K], DNA_FA, &[OUT_FA_50K])
+    run(&[RNA_FA_50K], DNA_FA, &[OUT_FA_50K], &[OUT_FA_50K_COUNT])
 }
 
 // --------------------------------------------------
 #[test]
 fn run_50k_fastq() -> Result<()> {
-    run(&[RNA_FQ_50K], DNA_FQ, &[OUT_FQ_50K])
+    run(&[RNA_FQ_50K], DNA_FQ, &[OUT_FQ_50K], &[OUT_FQ_50K_COUNT])
 }
 
 // --------------------------------------------------
 #[test]
 fn run_100k_fasta() -> Result<()> {
-    run(&[RNA_FA_100K], DNA_FA, &[OUT_FA_100K])
+    run(&[RNA_FA_100K], DNA_FA, &[OUT_FA_100K], &[OUT_FA_100K_COUNT])
 }
 
 // --------------------------------------------------
 #[test]
 fn run_100k_fastq() -> Result<()> {
-    run(&[RNA_FQ_100K], DNA_FQ, &[OUT_FQ_100K])
+    run(&[RNA_FQ_100K], DNA_FQ, &[OUT_FQ_100K], &[OUT_FQ_100K_COUNT])
 }
 
 // --------------------------------------------------
@@ -130,5 +151,6 @@ fn run_50k_100k_fastq() -> Result<()> {
         &[RNA_FA_50K, RNA_FQ_100K],
         DNA_FQ,
         &[OUT_FA_50K, OUT_FQ_100K],
+        &[OUT_FA_50K_COUNT, OUT_FQ_100K_COUNT],
     )
 }

@@ -109,22 +109,30 @@ fn run(args: Args) -> Result<()> {
         .try_for_each(|reads_file| -> Result<()> {
             let basename = Path::new(&reads_file)
                 .file_name()
-                .ok_or(anyhow!("basename"))?;
+                .ok_or(anyhow!("basename"))?
+                .to_os_string();
 
-            let mut basename = basename.to_os_string();
-            basename.push(".txt");
-            let out_path = &outdir.join(basename);
-            let mut out_file = File::create(out_path)?;
+            let mut out_data_file = basename.clone();
+            out_data_file.push(".txt");
+            let out_data_path = &outdir.join(out_data_file);
+            let mut out_data = File::create(out_data_path)?;
+
+            let mut out_count_file = basename.clone();
+            out_count_file.push(".count");
+            let out_count_path = &outdir.join(out_count_file);
+            let mut out_count = File::create(out_count_path)?;
 
             // Search through each of the RNA sequences, reusing
             // the sequence and search results instances.
             let timer = Instant::now();
             let mut reads: kseq::Paths = get_reader(&reads_file)?;
-            writeln!(out_file, "File: {}", &reads_file)?;
+            writeln!(out_data, "File: {}", &reads_file)?;
 
             let mut search: Search = Search::new(&junctions)?;
+            let mut read_count = 0;
             while let Some(rec) = reads.iter_record()? {
                 search.search(rec.seq());
+                read_count += 1;
             }
 
             if args.verbose {
@@ -137,10 +145,12 @@ fn run(args: Args) -> Result<()> {
             for (i, count) in search.junctions.hits.into_iter().enumerate() {
                 if count > 0 {
                     if let Some(name) = map.get(&search.junctions.key[i]) {
-                        writeln!(out_file, "{name}\t{count}")?;
+                        writeln!(out_data, "{name}\t{count}")?;
                     }
                 }
             }
+
+            writeln!(out_count, "{read_count}")?;
             Ok(())
         })?;
 
